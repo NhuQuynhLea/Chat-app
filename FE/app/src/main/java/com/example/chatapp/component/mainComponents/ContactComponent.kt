@@ -1,4 +1,4 @@
-package com.example.chatapp.activity.component
+package com.example.chatapp.component.mainComponents
 
 import android.content.Intent
 import androidx.compose.foundation.Image
@@ -39,6 +39,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.chatapp.R
@@ -47,6 +48,7 @@ import java.util.LinkedList
 import java.util.Queue
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Preview
 @Composable
 fun ContactComponent() {
     var name = listOf("Trần Trung Kiên","Quỳnh Lea", "Dương quá", "Quỳnh Lea", "Nguyễn Cao Hà Phương")
@@ -77,7 +79,7 @@ fun ContactComponent() {
         ) {
             SearchBar(
                 query = searchText,
-                onQueryChange = {},
+                onQueryChange = {searchText = it},
                 onSearch = { searchActive = false },
                 active = searchActive,
                 colors = SearchBarDefaults.colors(
@@ -87,7 +89,7 @@ fun ContactComponent() {
                 shape = RoundedCornerShape(10.dp),
                 onActiveChange = { searchActive = it },
                 placeholder = {
-                    Text(text = "Search", color = Color.Gray)
+                    Text(text = "Tìm kiếm", color = Color.Gray)
                 },
                 leadingIcon = {
                     Icon(

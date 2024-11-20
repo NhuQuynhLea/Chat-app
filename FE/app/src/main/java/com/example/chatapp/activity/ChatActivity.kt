@@ -1,21 +1,23 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.example.chatapp.activity
 
 import android.app.Activity
+import android.content.Intent
+import android.icu.text.ListFormatter.Width
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,9 +34,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.CopyAll
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertEmoticon
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Reply
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -43,12 +48,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ComposeCompilerApi
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,7 +60,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.input.pointer.motionEventSpy
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -68,11 +71,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.compose.ui.window.Dialog
 import com.example.chatapp.R
-import kotlin.math.ceil
 
 var name = ""
 
@@ -97,11 +100,14 @@ fun ChatScene() {
     }
     val viewConfiguration = LocalViewConfiguration.current
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     var chatText by remember {
         mutableStateOf("")
     }
     val lazyColumnState = rememberLazyListState()
     val context = LocalContext.current
+
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -115,22 +121,18 @@ fun ChatScene() {
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxSize()
-                .padding(bottom = viewConfiguration.minimumTouchTargetSize.height + 20.dp, top = viewConfiguration.minimumTouchTargetSize.height*1.5f)
+                .padding(
+                    bottom = viewConfiguration.minimumTouchTargetSize.height + 20.dp,
+                    top = viewConfiguration.minimumTouchTargetSize.height * 1.5f
+                )
         ) {
-            item {
-                TextChatItem(content = "Hello", isSender = true)
-                Spacer(modifier = Modifier.height(10.dp))
-                TextChatItem(content = "Hello", isSender = false)
-                Spacer(modifier = Modifier.height(10.dp))
-                SingleImageChatItem(false)
-                Spacer(modifier = Modifier.height(10.dp))
-                MultiImageChatItem(isSender = true)
-                Spacer(modifier = Modifier.height(10.dp))
-                FileChatItem(content = "test.png", size = "20 MB", time = "10:00", isSender = true)
-                Spacer(modifier = Modifier.height(10.dp))
-                FileChatItem(content = "test.jpeg", size = "20 MB", time = "10:00", isSender = false)
-                Spacer(modifier = Modifier.height(10.dp))
-                FileChatItem(content = "test.jpeg", size = "20 MB", time = "10:00", isSender = false)
+            items(chatList.reversed()) {
+                TextChatItem(
+                    content = it,
+                    isSender = chatStateList[chatList.indexOf(it)],
+                    screenWidth = screenWidth,
+                    screenHeight = screenHeight
+                )
             }
         }
 
@@ -138,7 +140,7 @@ fun ChatScene() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(viewConfiguration.minimumTouchTargetSize.height * 1.5f)
+                .height(viewConfiguration.minimumTouchTargetSize.height)
                 .background(color = colorResource(id = R.color.purple_700))
                 .align(Alignment.TopCenter)
         ) {
@@ -166,7 +168,6 @@ fun ChatScene() {
                             Image(
                                 painter = painterResource(id = R.drawable.avatar),
                                 contentDescription = "",
-                                contentScale = ContentScale.FillBounds,
                                 modifier = Modifier
                                     .align(Alignment.Center)
                                     .clip(
@@ -238,6 +239,9 @@ fun ChatScene() {
                             modifier = Modifier
                                 .size(viewConfiguration.minimumTouchTargetSize.height)
                                 .padding(5.dp)
+                                .clickable {
+                                    context.startActivity(Intent(context,PropertyActivity::class.java))
+                                }
                         )
                     }
                 }
@@ -339,11 +343,16 @@ fun ChatScene() {
     }
 }
 
+
 @Composable
-fun TextChatItem(content: String, isSender: Boolean) {
+fun TextChatItem(content: String, isSender: Boolean, screenHeight: Dp, screenWidth: Dp) {
     val alignment = if (isSender) Alignment.CenterEnd else Alignment.CenterStart
     val backgroundColor = if (isSender) colorResource(id = R.color.mainColor) else Color.LightGray
     val textColor = if (isSender) Color.White else Color.Black
+    val minimumHeight = LocalViewConfiguration.current.minimumTouchTargetSize.height.value.dp
+    var showReact by remember {
+        mutableStateOf(false)
+    }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -355,6 +364,12 @@ fun TextChatItem(content: String, isSender: Boolean) {
                 .clip(RoundedCornerShape(15.dp))
                 .align(alignment)
                 .background(backgroundColor)
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = {
+                        showReact = true
+                    }
+                )
         ) {
             Spacer(modifier = Modifier.height(5.dp))
 
@@ -368,6 +383,103 @@ fun TextChatItem(content: String, isSender: Boolean) {
             Spacer(modifier = Modifier.height(5.dp))
         }
     }
+    if (showReact) Dialog(onDismissRequest = { showReact = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = if (!isSender) Alignment.Start else Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(minimumHeight)
+                        .padding(horizontal = 10.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(15.dp))
+                            .align(if (!isSender) Alignment.CenterStart else Alignment.CenterEnd)
+                            .background(Color.White)
+                    ) {
+                        Spacer(modifier = Modifier.height(5.dp))
+
+                        Row(modifier = Modifier.padding(5.dp)) {
+                            Spacer(modifier = Modifier.width(5.dp))
+
+                            Text(text = content, color = Color.Black, fontSize = 20.sp, textAlign = TextAlign.Center)
+
+                            Spacer(modifier = Modifier.width(5.dp))
+                        }
+                        Spacer(modifier = Modifier.height(5.dp))
+                    }
+                }
+
+                //Icons
+//            Row(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .clip(RoundedCornerShape(20.dp))
+//                    .background(Color.White)
+//            ) {
+//
+//            }
+
+                Column(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White)
+                        .size(width = screenWidth*0.5f, height = minimumHeight*4)
+                ) {
+                    Row(modifier = Modifier.fillMaxWidth().weight(0.25f),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "Trả lời", color = Color.Black, textAlign = TextAlign.Left)
+                        Icon(
+                            imageVector = Icons.Default.Reply,
+                            contentDescription = "",
+                            tint = Color.Black
+                        )
+                    }
+                    Row(modifier = Modifier.fillMaxWidth().weight(0.25f),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "Chuyển tiếp", color = Color.Black, textAlign = TextAlign.Left)
+                        Icon(
+                            imageVector = Icons.Default.Reply,
+                            contentDescription = "",
+                            tint = Color.Black
+                        )
+                    }
+                    Row(modifier = Modifier.fillMaxWidth().weight(0.25f),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "Sao chép", color = Color.Black, textAlign = TextAlign.Left)
+                        Icon(
+                            imageVector = Icons.Default.CopyAll,
+                            contentDescription = "",
+                            tint = Color.Black
+                        )
+                    }
+                    Row(modifier = Modifier.fillMaxWidth().weight(0.25f),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "Xóa tin nhắn", color = Color.Black, textAlign = TextAlign.Left)
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "",
+                            tint = Color.Black
+                        )
+                    }
+                }
+            }
+        }
 }
 
 @Composable
@@ -435,7 +547,7 @@ fun MultiImageChatItem(isSender: Boolean) {
 }
 
 @Composable
-fun FileChatItem(content: String, size:String, time:String, isSender: Boolean) {
+fun FileChatItem(content: String, size: String, time: String, isSender: Boolean) {
     val alignment = if (isSender) Alignment.CenterEnd else Alignment.CenterStart
     val arrangement = if (isSender) Arrangement.End else Arrangement.Start
     val contentColor = if (isSender) colorResource(id = R.color.messageColor) else Color.LightGray

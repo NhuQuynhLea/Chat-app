@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Chat App</string>
+    <string name="url">https://ethical-coral-apparently.ngrok-free.app/</string>
 </resources>
