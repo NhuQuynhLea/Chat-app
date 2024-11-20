@@ -74,54 +74,59 @@ fun ProfileComponent() {
                 .background(Color.LightGray)
         ) {
             item {
-                //Avatar function
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Spacer(modifier = Modifier.height(viewConfiguration.minimumTouchTargetSize.height * 0.5f))
-                    //Avatar
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
+                Box(modifier = Modifier.fillMaxWidth().background(Color.White)){
+                    Image(painter = painterResource(id = R.drawable.background), contentDescription = "", modifier = Modifier.fillMaxWidth().height(viewConfiguration.minimumTouchTargetSize.height*3f).align(Alignment.TopCenter))
+                    //Avatar function
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.Center)
+                            .background(Color.Transparent),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Box(modifier = Modifier.clickable { }) {
-                            Image(
-                                painter = painterResource(id = R.drawable.avatar),
-                                contentDescription = "",
-                                contentScale = ContentScale.FillBounds,
-                                modifier = Modifier
-                                    .align(Alignment.Center)
-                                    .clip(
-                                        RoundedCornerShape(100.dp)
-                                    )
-                                    .size(viewConfiguration.minimumTouchTargetSize.height * 1.5f)
-                            )
-                            Icon(
-                                imageVector = Icons.Default.CameraAlt,
-                                contentDescription = "",
-                                tint = Color.Gray,
-                                modifier = Modifier.align(Alignment.BottomEnd)
+                        Spacer(modifier = Modifier.height(viewConfiguration.minimumTouchTargetSize.height*2f))
+                        //Avatar
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Box(modifier = Modifier.clickable { }) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.avatar),
+                                    contentDescription = "",
+                                    contentScale = ContentScale.FillBounds,
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .clip(
+                                            RoundedCornerShape(100.dp)
+                                        )
+                                        .size(viewConfiguration.minimumTouchTargetSize.height * 1.5f)
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.CameraAlt,
+                                    contentDescription = "",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.align(Alignment.BottomEnd)
+                                )
+                            }
+                        }
+                        //Name
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = Storage.userName,
+                                color = colorResource(id = R.color.mainColor),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Medium
                             )
                         }
+                        Spacer(modifier = Modifier.height(5.dp))
                     }
-                    //Name
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = Storage.userName,
-                            color = colorResource(id = R.color.mainColor),
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(5.dp))
                 }
+
 
                 Spacer(modifier = Modifier.height(10.dp))
                 //Image and link
