@@ -1,12 +1,6 @@
-package com.example.chatapp.activity
+package com.example.chatapp.activity.connect
 
 import android.app.Activity
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,12 +16,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
+import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -44,24 +36,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ComposeCompilerApi
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.input.pointer.motionEventSpy
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -75,95 +60,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.viewModelFactory
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.example.chatapp.R
-import com.example.chatapp.activity.call.CallScreen
-import com.example.chatapp.activity.call.CallViewModel
-import com.example.chatapp.activity.call.State
-import com.example.chatapp.activity.connect.ConnectAction
-import com.example.chatapp.activity.connect.ConnectScreen
-import com.example.chatapp.activity.connect.ConnectState
-import com.example.chatapp.activity.connect.ConnectViewModel
-import io.getstream.video.android.compose.theme.VideoTheme
-import kotlinx.serialization.Serializable
-import org.koin.androidx.compose.koinViewModel
-import kotlin.math.ceil
-
-var name = ""
-
-class ChatActivity : ComponentActivity() {
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        name = intent.getStringExtra("name") ?: "Guest"
-
-        setContent {
-//            val viewModel = koinViewModel<ConnectViewModel>()
-//            val state = viewModel.state
-//            ChatScene(
-//                state = state, onAction = viewModel::onAction
-//            )
-            Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                val navController = rememberNavController()
-                NavHost(
-                    navController = navController,
-                    startDestination = ConnectRoute,
-                    modifier = Modifier.padding(innerPadding)
-                ) {
-                    composable<ConnectRoute> {
-                        val viewModel = koinViewModel<ConnectViewModel>()
-                        val state = viewModel.state
-
-
-                        LaunchedEffect(key1 = state.isConnected) {
-                            if(state.isConnected) {
-                                navController.navigate(VideoCallRoute) {
-                                    popUpTo(ConnectRoute) {
-                                        inclusive = true
-                                    }
-                                }
-                            }
-                        }
-                        viewModel.onAction(ConnectAction.OnNameChange(name))
-                        ChatScene(state = state, onAction = viewModel::onAction)
-                    }
-                    composable<VideoCallRoute> {
-                        val viewModel = koinViewModel<CallViewModel>()
-                        val state = viewModel.state
-
-                        LaunchedEffect(key1 = state.callState) {
-                            if(state.callState == State.ENDED) {
-                                navController.navigate(ConnectRoute) {
-                                    popUpTo(VideoCallRoute) {
-                                        inclusive = true
-                                    }
-                                }
-                            }
-                        }
-
-                        VideoTheme {
-
-                            CallScreen(state = state, onAction = viewModel::onAction)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-@kotlinx.serialization.Serializable
-data object ConnectRoute
-
-@Serializable
-data object VideoCallRoute
+import com.example.chatapp.activity.FileChatItem
+import com.example.chatapp.activity.MultiImageChatItem
+import com.example.chatapp.activity.SingleImageChatItem
+import com.example.chatapp.activity.TextChatItem
+import com.example.chatapp.activity.name
 
 @Composable
-fun ChatScene(state: ConnectState,
-              onAction: (ConnectAction) -> Unit) {
+fun ConnectScreen(
+    state: ConnectState,
+    onAction: (ConnectAction) -> Unit
+) {
     val chatList = remember {
         mutableStateListOf<String>()
     }
@@ -266,7 +174,7 @@ fun ChatScene(state: ConnectState,
                     Row(
                         modifier = Modifier.weight(0.5f), verticalAlignment = Alignment.Bottom
                     ) {
-                        Text(
+                        androidx.compose.material3.Text(
                             text = name,
                             color = Color.White,
                             fontSize = 20.sp,
@@ -279,7 +187,7 @@ fun ChatScene(state: ConnectState,
                     Row(
                         modifier = Modifier.weight(0.5f), verticalAlignment = Alignment.Top
                     ) {
-                        Text(
+                        androidx.compose.material3.Text(
                             text = "Online",
                             color = Color.White,
                             fontSize = 16.sp,
@@ -298,7 +206,7 @@ fun ChatScene(state: ConnectState,
                                 .size(viewConfiguration.minimumTouchTargetSize.height)
                                 .padding(5.dp)
                                 .clickable {
-
+                                    onAction(ConnectAction.OnNameChange("name"))
                                     onAction(ConnectAction.OnConnectClick)
                                 }
                         )
@@ -311,7 +219,7 @@ fun ChatScene(state: ConnectState,
                                 .size(viewConfiguration.minimumTouchTargetSize.height)
                                 .padding(10.dp)
                                 .clickable {
-
+                                    onAction(ConnectAction.OnNameChange(name))
                                     onAction(ConnectAction.OnConnectClick)
                                 }
                         )
@@ -421,152 +329,66 @@ fun ChatScene(state: ConnectState,
         }
 
     }
+//    Column(
+//        modifier = Modifier
+//            .fillMaxSize()
+//            .padding(16.dp)
+//    ) {
+//        Text(
+//            text = "Choose a name",
+//            fontSize = 18.sp
+//        )
+//        Spacer(modifier = Modifier.height(16.dp))
+////        TextField(
+////            value = state.name,
+////            onValueChange = {
+////                onAction(ConnectAction.OnNameChange(it))
+////            },
+////            placeholder = {
+////                Text(text = "Name")
+////            },
+////            modifier = Modifier
+////                .fillMaxWidth()
+////        )
+//        Image(
+//            painter = painterResource(id = R.drawable.call_icon),
+//            contentDescription = "",
+//            colorFilter = ColorFilter.tint(Color.White),
+//            contentScale = ContentScale.FillBounds,
+//            modifier = Modifier
+//                .size(viewConfiguration.minimumTouchTargetSize.height)
+//                .padding(10.dp)
+//                .clickable {
+//                    onAction(ConnectAction.OnNameChange("name"))
+//                    onAction(ConnectAction.OnConnectClick)
+//                }
+//        )
+//        Spacer(modifier = Modifier.height(16.dp))
+//        Button(
+//            onClick = {
+//                onAction(ConnectAction.OnConnectClick)
+//            },
+//            modifier = Modifier.align(Alignment.End)
+//        ) {
+//            Text(text = "Connect")
+//        }
+//        Spacer(modifier = Modifier.height(16.dp))
+//        if(state.errorMessage != null) {
+//            Text(
+//                text = state.errorMessage,
+//                color = MaterialTheme.colorScheme.error
+//            )
+//        }
+//    }
 }
+
 @Preview(showBackground = true)
 @Composable
-private fun ChatScene() {
+private fun ConnectScreenPreview() {
     ConnectScreen(
         state = ConnectState(
             errorMessage = "Hello world"
         ),
         onAction = {}
     )
-}
-
-@Composable
-fun TextChatItem(content: String, isSender: Boolean) {
-    val alignment = if (isSender) Alignment.CenterEnd else Alignment.CenterStart
-    val backgroundColor = if (isSender) colorResource(id = R.color.mainColor) else Color.LightGray
-    val textColor = if (isSender) Color.White else Color.Black
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(15.dp))
-                .align(alignment)
-                .background(backgroundColor)
-        ) {
-            Spacer(modifier = Modifier.height(5.dp))
-
-            Row(modifier = Modifier.padding(5.dp)) {
-                Spacer(modifier = Modifier.width(5.dp))
-
-                Text(text = content, color = textColor, fontSize = 20.sp)
-
-                Spacer(modifier = Modifier.width(5.dp))
-            }
-            Spacer(modifier = Modifier.height(5.dp))
-        }
-    }
-}
-
-@Composable
-fun SingleImageChatItem(isSender: Boolean) {
-    val alignment = if (isSender) Alignment.CenterEnd else Alignment.CenterStart
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp)
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.meme),
-            contentDescription = "",
-            contentScale = ContentScale.FillBounds,
-            modifier = Modifier
-                .clip(
-                    RoundedCornerShape(15.dp)
-                )
-                .size(200.dp)
-                .align(alignment)
-        )
-    }
-}
-
-@Composable
-fun MultiImageChatItem(isSender: Boolean) {
-    val alignment = if (isSender) Alignment.CenterEnd else Alignment.CenterStart
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp)
-    ) {
-
-        Box(
-            modifier = Modifier
-                .size(170.dp)
-                .align(alignment)
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.meme),
-                contentDescription = "",
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier
-                    .clip(
-                        RoundedCornerShape(15.dp)
-                    )
-                    .size(150.dp)
-                    .blur(10.dp)
-                    .align(if (isSender) Alignment.BottomEnd else Alignment.BottomStart)
-            )
-            Image(
-                painter = painterResource(id = R.drawable.meme),
-                contentDescription = "",
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier
-                    .clip(
-                        RoundedCornerShape(15.dp)
-                    )
-                    .size(150.dp)
-                    .align(if (isSender) Alignment.TopStart else Alignment.TopEnd)
-            )
-        }
-
-    }
-}
-
-@Composable
-fun FileChatItem(content: String, size:String, time:String, isSender: Boolean) {
-    val alignment = if (isSender) Alignment.CenterEnd else Alignment.CenterStart
-    val arrangement = if (isSender) Arrangement.End else Arrangement.Start
-    val contentColor = if (isSender) colorResource(id = R.color.messageColor) else Color.LightGray
-    val backgroundColor = if (isSender) colorResource(id = R.color.mainColor) else Color.Gray
-    val textColor = if (isSender) Color.White else Color.Black
-    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(15.dp))
-                .align(alignment)
-                .width(screenWidth * 0.6f)
-                .background(backgroundColor)
-        ) {
-            Column(modifier = Modifier.padding(10.dp)) {
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(15.dp))
-                        .fillMaxWidth()
-                        .background(color = contentColor)
-                ) {
-                    Column(modifier = Modifier.padding(vertical = 10.dp, horizontal = 15.dp)) {
-                        Text(text = content, color = textColor, fontSize = 20.sp)
-                        Spacer(modifier = Modifier.height(5.dp))
-                        Text(text = size, color = textColor, fontSize = 15.sp)
-                    }
-                }
-                Spacer(modifier = Modifier.height(5.dp))
-                Row(horizontalArrangement = arrangement, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = time, color = textColor, fontSize = 15.sp)
-                }
-
-            }
-        }
-    }
 }

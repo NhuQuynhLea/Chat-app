@@ -10,6 +10,7 @@ import android.widget.Space
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -42,10 +43,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,35 +71,104 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.chatapp.R
+import com.example.chatapp.activity.call.CallScreen
+import com.example.chatapp.activity.call.CallViewModel
+import com.example.chatapp.activity.call.State
 import com.example.chatapp.activity.component.ContactComponent
 import com.example.chatapp.activity.component.MessagesComponent
 import com.example.chatapp.activity.component.PrivateComponent
+import com.example.chatapp.activity.connect.ConnectScreen
+import com.example.chatapp.activity.connect.ConnectViewModel
+import io.getstream.video.android.compose.theme.VideoTheme
+import kotlinx.serialization.Serializable
+import org.koin.androidx.compose.koinViewModel
 import java.time.LocalTime
 import java.util.LinkedList
 import java.util.Queue
 
+//class MainActivity : ComponentActivity() {
+//    override fun onCreate(savedInstanceState: Bundle?) {
+//        super.onCreate(savedInstanceState)
+//        setContent {
+//            MainScene()
+//        }
+//    }
+//    private var doubleBackToExitPressedOnce = false
+//    override fun onBackPressed() {
+//        if (doubleBackToExitPressedOnce) {
+//            super.onBackPressed()
+//            return
+//        }
+//
+//        this.doubleBackToExitPressedOnce = true
+//        Toast.makeText(this, "Please click BACK again to exit", Toast.LENGTH_SHORT).show()
+//
+//        Handler(Looper.getMainLooper()).postDelayed(Runnable { doubleBackToExitPressedOnce = false }, 2000)
+//    }
+//}
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             MainScene()
+//            Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+//                val navController = rememberNavController()
+//                NavHost(
+//                    navController = navController,
+//                    startDestination = ConnectRoute,
+//                    modifier = Modifier.padding(innerPadding)
+//                ) {
+//                    composable<ConnectRoute> {
+//                        val viewModel = koinViewModel<ConnectViewModel>()
+//                        val state = viewModel.state
+//
+//                        LaunchedEffect(key1 = state.isConnected) {
+//                            if(state.isConnected) {
+//                                navController.navigate(VideoCallRoute) {
+//                                    popUpTo(ConnectRoute) {
+//                                        inclusive = true
+//                                    }
+//                                }
+//                            }
+//                        }
+//
+//                        ConnectScreen(state = state, onAction = viewModel::onAction)
+//                    }
+//                    composable<VideoCallRoute> {
+//                        val viewModel = koinViewModel<CallViewModel>()
+//                        val state = viewModel.state
+//
+//                        LaunchedEffect(key1 = state.callState) {
+//                            if(state.callState == State.ENDED) {
+//                                navController.navigate(ConnectRoute) {
+//                                    popUpTo(VideoCallRoute) {
+//                                        inclusive = true
+//                                    }
+//                                }
+//                            }
+//                        }
+//
+//                        VideoTheme {
+//
+//                            CallScreen(state = state, onAction = viewModel::onAction)
+//                        }
+//                    }
+//                }
+//            }
         }
-    }
-    private var doubleBackToExitPressedOnce = false
-    override fun onBackPressed() {
-        if (doubleBackToExitPressedOnce) {
-            super.onBackPressed()
-            return
-        }
-
-        this.doubleBackToExitPressedOnce = true
-        Toast.makeText(this, "Please click BACK again to exit", Toast.LENGTH_SHORT).show()
-
-        Handler(Looper.getMainLooper()).postDelayed(Runnable { doubleBackToExitPressedOnce = false }, 2000)
     }
 }
 
+//@kotlinx.serialization.Serializable
+//data object ConnectRoute
+//
+//@Serializable
+//data object VideoCallRoute
 @Preview
 @Composable
 fun MainScene() {
@@ -291,4 +363,5 @@ fun MainScene() {
         }
 
     }
+
 }
