@@ -76,6 +76,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.chatapp.R
+import com.example.chatapp.model.Message
+import com.example.chatapp.storage.Storage
+import java.time.LocalDateTime
 
 var name = ""
 
@@ -92,12 +95,6 @@ class ChatActivity : ComponentActivity() {
 @Preview
 @Composable
 fun ChatScene() {
-    val chatList = remember {
-        mutableStateListOf<String>()
-    }
-    val chatStateList = remember {
-        mutableListOf(true)
-    }
     val viewConfiguration = LocalViewConfiguration.current
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
@@ -106,7 +103,7 @@ fun ChatScene() {
     }
     val lazyColumnState = rememberLazyListState()
     val context = LocalContext.current
-
+    val currentDateTime = LocalDateTime.now()
 
     Box(
         modifier = Modifier
@@ -126,10 +123,10 @@ fun ChatScene() {
                     top = viewConfiguration.minimumTouchTargetSize.height * 1.5f
                 )
         ) {
-            items(chatList.reversed()) {
+            items(Storage.conversationChosen.messageList.reversed()) {
                 TextChatItem(
-                    content = it,
-                    isSender = chatStateList[chatList.indexOf(it)],
+                    content = it.textContent,
+                    isSender = it.senderId.equals(Storage.id),
                     screenWidth = screenWidth,
                     screenHeight = screenHeight
                 )
@@ -192,7 +189,7 @@ fun ChatScene() {
                         modifier = Modifier.weight(0.5f), verticalAlignment = Alignment.Bottom
                     ) {
                         Text(
-                            text = name,
+                            text = Storage.conversationChosen.name,
                             color = Color.White,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
@@ -320,8 +317,8 @@ fun ChatScene() {
                                     .trim()
                                     .isNotEmpty()
                             ) {
-                                chatList.add(chatText.trim())
-                                chatStateList.add(true)
+                                val message = Message()
+                                message.generateTextMessage(content = chatText.trim(),localDateTime = currentDateTime)
                                 chatText = ""
                             }
                         }

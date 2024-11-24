@@ -4,14 +4,17 @@ import android.content.Context
 import android.util.Log
 import com.example.chatapp.R
 import com.example.chatapp.model.Conversation
+import com.example.chatapp.model.Message
 import com.example.chatapp.model.User
 import okhttp3.FormBody
+import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.contracts.contract
 
 object API {
     private val client = OkHttpClient()
@@ -30,7 +33,7 @@ object API {
                     }
                 ],
                 "attributes": 
-                    {"imageUrl": "https://static-00.iconduck.com/assets.00/person-icon-1901x2048-a9h70k71.png"}
+                    {"imageUrl": "https://up.yimg.com/ib/th?id=OIP.55xrJdT3ckz5UX55xcVb7QHaLH&pid=Api&rs=1&c=1&qlt=95&w=83&h=124"}
                 ,
                 "email": "$email",
                 "emailVerified": false,
@@ -39,13 +42,16 @@ object API {
                 "lastName": "${if (username.contains(" ")) username.substring(username.indexOf(" ")+1) else ""}"
             }
         """
-        val requestBody = RequestBody.create("application/json".toMediaTypeOrNull(),json)
+        val requestBody = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json)
         builder.post(requestBody)
         val request = builder.build()
         try {
             val response = client.newCall(request).execute()
+            Log.e("check",response.code.toString())
+            Log.e("check",response.message.toString())
             return response.isSuccessful
         }catch (e:Exception){
+            Log.e("check",e.message.toString())
             return false
         }
     }
@@ -80,8 +86,8 @@ object API {
             val response = client.newCall(request).execute()
             val json = JSONObject(response.body!!.string())
             user = readUserFromJson(json)
-        } catch (_:Exception){
-
+        } catch (e:Exception){
+            Log.e("loginError", e.message.toString())
         }
         return user
     }
@@ -127,6 +133,81 @@ object API {
             conversation.memberList.add(readUserFromJson(memberList.getJSONObject(i)))
         }
 
+        val messageList = jsonObject.getJSONArray("messages")
+        for (i in 0..messageList.length()-1){
+            conversation.messageList.add(readMessageFromJson(memberList.getJSONObject(i)))
+        }
+
         return conversation
     }
+
+    fun readMessageFromJson(jsonObject: JSONObject):Message{
+        val message = Message()
+        message.textContent = jsonObject.getString("textContent")
+        message.sendDate = jsonObject.getString("sendDate")
+        message.publicId = jsonObject.getString("publicId")
+        message.conversationId = jsonObject.getString("conversationId")
+        message.type = jsonObject.getString("type")
+        var mediaContent = jsonObject.getJSONArray("mediaContent")
+        for (i in 0..mediaContent.length()-1){
+            message.mediaContent.add(mediaContent[i].toString())
+        }
+        message.mimeType = jsonObject.getString("mimeType")
+        message.senderId = jsonObject.getString("senderId")
+        return message
+    }
+
+    fun writeMessageToJson(message: Message):JSONObject {
+        val jsonObject = JSONObject()
+
+        jsonObject.put("textContent",message.textContent)
+        jsonObject.put("sendDate",message.sendDate)
+        jsonObject.put("publicId",message.publicId)
+        jsonObject.put("conversationId",message.conversationId)
+        jsonObject.put("type",message.type)
+        jsonObject.put("mediaContent",message.mediaContent)
+        jsonObject.put("mimeType",message.mimeType)
+        jsonObject.put("senderId",message.senderId)
+
+        return jsonObject
+    }
+
+    fun searchUser(context: Context,query:String,token: String):ArrayList<User>{
+        var userList = arrayListOf<User>()
+        Log.e("token",token)
+        val builder = Request.Builder()
+        builder.url("${context.getString(R.string.url)}api/users/search?query=${query}&page=0&size=10&sort=firstName,asc")
+        builder.addHeader("Authorization", "Bearer $token")
+        val request = builder.build()
+        try {
+            val response = client.newCall(request).execute()
+            val json = JSONArray(response.body!!.string())
+            for (i in 0..json.length()-1){
+                userList.add(readUserFromJson(json.getJSONObject(i)))
+            }
+        } catch (e:Exception){
+            Log.e("error",e.message.toString())
+        }
+        return userList
+    }
+
+    fun createConversation(context: Context,name:String, userIdList:ArrayList<String>,token: String){
+        val builder = Request.Builder()
+        builder.url("${context.getString(R.string.url)}api/conversations")
+        builder.addHeader("Authorization", "Bearer $token")
+        val json = JSONObject()
+        json.put("name",name)
+        json.put("member",userIdList)
+        val requestBody = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json.toString())
+        builder.post(requestBody)
+        val request = builder.build()
+        try {
+            val response = client.newCall(request).execute()
+            Log.e("check",response.isSuccessful.toString())
+            Log.e("check",response.code.toString())
+        }catch (e:Exception){
+            Log.e("createConverError",e.message.toString())
+        }
+    }
+
 }

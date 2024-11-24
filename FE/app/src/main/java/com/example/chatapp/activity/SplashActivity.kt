@@ -3,6 +3,7 @@ package com.example.chatapp.activity
 import android.app.Activity.MODE_PRIVATE
 import android.content.Intent
 import android.os.Bundle
+import android.os.Looper
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -64,11 +65,16 @@ fun SplashScreen(){
 
                         context.startActivity(Intent(context,MainActivity::class.java))
                     } else {
-                        Toast.makeText(context,"Đăng nhập không thành công",Toast.LENGTH_LONG).show()
+                        CoroutineScope(Dispatchers.Main).launch {
+                            Toast.makeText(context,"Đăng nhập không thành công",Toast.LENGTH_LONG).show()
+                        }
+
                         context.startActivity(Intent(context,LogInActivity::class.java))
                     }
                 } else {
-                    Toast.makeText(context,"Đăng nhập không thành công",Toast.LENGTH_LONG).show()
+                    CoroutineScope(Dispatchers.Main).launch {
+                        Toast.makeText(context,"Đăng nhập không thành công",Toast.LENGTH_LONG).show()
+                    }
                     context.startActivity(Intent(context,LogInActivity::class.java))
                 }
             } else {
@@ -86,11 +92,15 @@ fun SplashScreen(){
 
                             context.startActivity(Intent(context,MainActivity::class.java))
                         } else {
-                            Toast.makeText(context,"Đăng nhập không thành công",Toast.LENGTH_LONG).show()
+                            CoroutineScope(Dispatchers.Main).launch {
+                                Toast.makeText(context,"Đăng nhập không thành công",Toast.LENGTH_LONG).show()
+                            }
                             context.startActivity(Intent(context,LogInActivity::class.java))
                         }
                     } else {
-                        Toast.makeText(context,"Đăng nhập không thành công",Toast.LENGTH_LONG).show()
+                        CoroutineScope(Dispatchers.Main).launch {
+                            Toast.makeText(context,"Đăng nhập không thành công",Toast.LENGTH_LONG).show()
+                        }
                         context.startActivity(Intent(context,LogInActivity::class.java))
                     }
                 } else {

@@ -2,9 +2,11 @@
 
 package com.example.chatapp.activity
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -56,24 +58,92 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.lifecycleScope
 import com.example.chatapp.R
 import com.example.chatapp.component.mainComponents.ContactComponent
 import com.example.chatapp.component.mainComponents.MessagesComponent
 import com.example.chatapp.component.mainComponents.ProfileComponent
 import com.example.chatapp.define.Define
 import com.example.chatapp.network.API
+import com.example.chatapp.network.SSEClient
+import com.example.chatapp.network.SSEHandler
 import com.example.chatapp.storage.CustomFont
 import com.example.chatapp.storage.Storage
+import com.launchdarkly.eventsource.MessageEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
+    private lateinit var sseClient: SSEClient
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sseClient = SSEClient()
+        startSSE()
         setContent {
             MainScene()
         }
+    }
+
+    private fun startSSE() {
+        sseClient.initSse(
+            sseHandler = object : SSEHandler {
+                override fun onSSEConnectionOpened() {
+                    updateStatus("SSE Connection Opened")
+                }
+
+                override fun onSSEConnectionClosed() {
+                    updateStatus("SSE Connection Closed")
+                }
+
+                override fun onSSEEventReceived(event: String, messageEvent: MessageEvent) {
+                    updateStatus("Received Event: $event with Message: ${messageEvent.data}")
+                }
+
+                override fun onSSEError(t: Throwable) {
+                    updateStatus("Error occurred in SSE connection")
+                }
+            },
+            errorCallback = { throwable ->
+                updateStatus("Error initializing SSE: ${throwable.message}")
+            }
+        )
+    }
+
+    private fun stopSSE() {
+        // Ensure to disconnect the SSE client when the activity stops
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                sseClient.disconnect()
+                withContext(Dispatchers.Main) {
+                    updateStatus("SSE Disconnected")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun updateStatus(status: String) {
+        runOnUiThread {
+            Log.e("check",status)
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        startSSE()  // Ensure to start the SSE connection when the activity is started
+    }
+
+    override fun onStop() {
+        super.onStop()
+        stopSSE()  // Ensure to stop the SSE connection when the activity is stopped
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopSSE()  // Ensure proper cleanup
     }
 
     private var doubleBackToExitPressedOnce = false
@@ -189,7 +259,11 @@ fun MainScene() {
                                     fontFamily = CustomFont.font
                                 )
                             }
-                        }, onClick = { /*TODO*/ })
+                        }, onClick = {
+                            val intent = Intent(context,MultiTaskActivity::class.java)
+                            intent.putExtra("type","friend")
+                            context.startActivity(intent)
+                        })
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 10.dp))
                         DropdownMenuItem(text = {
                             Row(
@@ -207,7 +281,11 @@ fun MainScene() {
                                     fontFamily = CustomFont.font
                                 )
                             }
-                        }, onClick = { /*TODO*/ })
+                        }, onClick = {
+                            val intent = Intent(context,MultiTaskActivity::class.java)
+                            intent.putExtra("type","group")
+                            context.startActivity(intent)
+                        })
                     }
 
                 }

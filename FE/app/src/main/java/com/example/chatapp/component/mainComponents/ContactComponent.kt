@@ -15,12 +15,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
@@ -35,15 +38,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.chatapp.R
 import com.example.chatapp.activity.ChatActivity
+import com.example.chatapp.storage.CustomFont
 import java.util.LinkedList
 import java.util.Queue
 
@@ -65,6 +71,7 @@ fun ContactComponent() {
         mutableStateOf(false)
     }
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
@@ -74,22 +81,15 @@ fun ContactComponent() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp)
+                .padding(horizontal = 10.dp, vertical = 10.dp)
                 .background(Color.Transparent)
         ) {
-            SearchBar(
-                query = searchText,
-                onQueryChange = {searchText = it},
-                onSearch = { searchActive = false },
-                active = searchActive,
-                colors = SearchBarDefaults.colors(
-                    containerColor = Color.White
-                ),
-                shadowElevation = 20.dp,
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
                 shape = RoundedCornerShape(10.dp),
-                onActiveChange = { searchActive = it },
                 placeholder = {
-                    Text(text = "Tìm kiếm", color = Color.Gray)
+                    if (searchText.isEmpty()) Text(text = "Tìm kiếm", color = Color.Gray, fontFamily = CustomFont.font)
                 },
                 leadingIcon = {
                     Icon(
@@ -99,21 +99,25 @@ fun ContactComponent() {
                     )
                 },
                 trailingIcon = {
-                    if (searchActive)
+                    if (searchText.isNotEmpty())
                         Icon(
                             imageVector = Icons.Default.Cancel,
                             contentDescription = "",
                             tint = Color.Gray,
                             modifier = Modifier.clickable {
-                                if (searchText.isNotEmpty()) {
-                                    searchText = ""
-                                } else {
-                                    searchActive = false
-                                }
+                                searchText=""
+                                focusManager.clearFocus()
                             }
                         )
-                }) {
-            }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(
+                    onSearch = {
+                        focusManager.clearFocus()
+                    }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         LazyColumn(modifier = Modifier.padding(top = 10.dp)) {

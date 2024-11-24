@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraEnhance
@@ -35,8 +37,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -52,35 +53,44 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.chatapp.R
+import com.example.chatapp.model.User
+import com.example.chatapp.network.API
 import com.example.chatapp.storage.CustomFont
+import com.example.chatapp.storage.Storage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MultiTaskActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MultiTaskScene()
+            intent.let { MultiTaskScene(it) }
         }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
-@Preview
 @Composable
-fun MultiTaskScene() {
+fun MultiTaskScene(intent: Intent) {
     val viewConfiguration = LocalViewConfiguration.current
     val context = LocalContext.current
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val name = listOf("Dương quá", "Nguyễn Cao Hà Phương", "Quỳnh Lea", "Trần Trung Kiên")
+    var userList by remember {
+        mutableStateOf(arrayListOf<User>())
+    }
+    val focusManager = LocalFocusManager.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -114,63 +124,63 @@ fun MultiTaskScene() {
             var searchText by remember {
                 mutableStateOf("")
             }
-            var searchActive by remember {
-                mutableStateOf(false)
-            }
             var groupName by remember {
                 mutableStateOf("")
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(viewConfiguration.minimumTouchTargetSize.height * 2f)
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CameraEnhance,
-                    contentDescription = "",
-                    tint = Color.Gray,
+            if (intent.getStringExtra("type").equals("group"))
+                Row(
                     modifier = Modifier
-                        .size(viewConfiguration.minimumTouchTargetSize.height * 2f)
-                        .padding(10.dp)
-                )
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    TextField(
-                        value = groupName,
-                        onValueChange = { groupName = it },
-                        label = {
-                            Text(text = "Tên nhóm", fontSize = 20.sp, fontFamily = CustomFont.font, fontWeight = FontWeight.Medium)
-                        },
-                        colors = TextFieldDefaults.colors(
-                            unfocusedContainerColor = Color.White,
-                            focusedContainerColor = Color.White,
-                            unfocusedIndicatorColor = Color.Blue,
-                            focusedIndicatorColor = Color.Blue
-                        ),
+                        .fillMaxWidth()
+                        .height(viewConfiguration.minimumTouchTargetSize.height * 2f)
+                        .padding(horizontal = 20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CameraEnhance,
+                        contentDescription = "",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .size(viewConfiguration.minimumTouchTargetSize.height * 2f)
+                            .padding(10.dp)
                     )
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        TextField(
+                            value = groupName,
+                            onValueChange = { groupName = it },
+                            label = {
+                                Text(
+                                    text = "Tên nhóm",
+                                    fontSize = 20.sp,
+                                    fontFamily = CustomFont.font,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            },
+                            colors = TextFieldDefaults.colors(
+                                unfocusedContainerColor = Color.White,
+                                focusedContainerColor = Color.White,
+                                unfocusedIndicatorColor = Color.Blue,
+                                focusedIndicatorColor = Color.Blue
+                            ),
+                        )
+                    }
                 }
-            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 10.dp)
+                    .padding(horizontal = 10.dp, vertical = 10.dp)
                     .background(Color.Transparent)
             ) {
-                SearchBar(
-                    query = searchText,
-                    onQueryChange = { searchText = it },
-                    onSearch = { searchActive = false },
-                    active = searchActive,
-                    colors = SearchBarDefaults.colors(
-                        containerColor = Color.White
-                    ),
-                    shadowElevation = 20.dp,
+                OutlinedTextField(
+                    value = searchText,
+                    onValueChange = { searchText = it },
                     shape = RoundedCornerShape(10.dp),
-                    onActiveChange = { searchActive = it },
                     placeholder = {
-                        Text(text = "Tìm kiếm", color = Color.Gray, fontFamily = CustomFont.font)
+                        if (searchText.isEmpty()) Text(
+                            text = "Tìm kiếm",
+                            color = Color.Gray,
+                            fontFamily = CustomFont.font
+                        )
                     },
                     leadingIcon = {
                         Icon(
@@ -180,24 +190,31 @@ fun MultiTaskScene() {
                         )
                     },
                     trailingIcon = {
-                        if (searchActive)
+                        if (searchText.isNotEmpty())
                             Icon(
                                 imageVector = Icons.Default.Cancel,
                                 contentDescription = "",
                                 tint = Color.Gray,
                                 modifier = Modifier.clickable {
-                                    if (searchText.isNotEmpty()) {
-                                        searchText = ""
-                                    } else {
-                                        searchActive = false
-                                    }
+                                    searchText = ""
+                                    focusManager.clearFocus()
                                 }
                             )
-                    }) {
-                }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(
+                        onSearch = {
+                            focusManager.clearFocus()
+                            CoroutineScope(Dispatchers.IO).launch {
+                                userList = API.searchUser(context = context, query = searchText, token = Storage.token)
+                            }
+                        }
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
             LazyColumn() {
-                items(count = 20) { item ->
+                items(userList.size) { index ->
                     var checkBoxItem by remember {
                         mutableStateOf(false)
                     }
@@ -206,8 +223,31 @@ fun MultiTaskScene() {
                             .fillMaxWidth()
                             .height(80.dp)
                             .clickable {
+                                if (intent.getStringExtra("type").equals("friend")){
+                                    var isExist = false
+                                    for (conversation in Storage.listConversation){
+                                        if (conversation.name == userList[index].userName){
+                                            isExist = true
+                                            Storage.conversationChosen = conversation
+                                            break
+                                        }
+                                    }
+                                    if (!isExist){
+                                        CoroutineScope(Dispatchers.IO).launch {
+                                            API.createConversation(context = context, name = userList[index].userName, userIdList = arrayListOf(Storage.id,userList[index].id), token = Storage.token)
+                                            Storage.listConversation = API.getAllConversation(context = context, Storage.token)
+                                            for (conversation in Storage.listConversation){
+                                                if (conversation.name == userList[index].userName){
+                                                    Storage.conversationChosen = conversation
+                                                    break
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+
+                                }
                                 val intent = Intent(context, ChatActivity::class.java)
-                                intent.putExtra("name", name[item % 4])
                                 context.startActivity(intent)
                             }
                     ) {
@@ -242,49 +282,23 @@ fun MultiTaskScene() {
                                 }
 
                                 //Text
-                                Column(
+                                Box(
                                     modifier = Modifier
-                                        .weight(0.6f)
-                                        .padding(vertical = 20.dp),
+                                        .weight(0.6f).fillMaxHeight(),
                                 ) {
-                                    Row(
-                                        modifier = Modifier.weight(0.5f),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = name[item % 4],
-                                            color = colorResource(id = R.color.purple_700),
-                                            fontSize = 20.sp,
-                                            overflow = TextOverflow.Ellipsis,
-                                            fontWeight = FontWeight.Bold,
-                                            fontFamily = CustomFont.font
-                                        )
-                                    }
-                                    Row(
-                                        modifier = Modifier.weight(0.5f),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        if (name[item % 4].equals("Trần Trung Kiên")) {
-                                            Text(
-                                                text = "Bản nháp: ",
-                                                color = colorResource(id = R.color.mainColor),
-                                                fontSize = 16.sp
-                                            )
-                                        }
-
-                                        Text(
-                                            text = "1234567890",
-                                            color = Color.Gray,
-                                            fontSize = 16.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                            fontFamily = CustomFont.font,
-                                            modifier = Modifier.weight(0.5f)
-                                        )
-                                    }
+                                    Text(
+                                        text = userList[index].userName,
+                                        color = colorResource(id = R.color.purple_700),
+                                        fontSize = 16.sp,
+                                        overflow = TextOverflow.Ellipsis,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = CustomFont.font,
+                                        modifier = Modifier.align(Alignment.CenterStart)
+                                    )
                                 }
 
-                                //Time and notification
+                                //Checkbox
+                                if (intent.getStringExtra("type").equals("group"))
                                 Box(
                                     modifier = Modifier
                                         .weight(0.2f)
@@ -334,7 +348,7 @@ fun MultiTaskScene() {
                 colors = ButtonDefaults.outlinedButtonColors(containerColor = colorResource(id = R.color.blue))
             ) {
                 Text(
-                    text = "Thêm",
+                    text = if (intent.getStringExtra("type").equals("group")) "Tạo" else "Thêm",
                     fontSize = 20.sp,
                     color = Color.White,
                     fontFamily = CustomFont.font

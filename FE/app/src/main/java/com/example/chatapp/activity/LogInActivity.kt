@@ -100,8 +100,9 @@ class LogInActivity : ComponentActivity() {
         }
 
         this.doubleBackToExitPressedOnce = true
-        Toast.makeText(this, "Bấm QUAY LẠI lần nữa để thoát", Toast.LENGTH_SHORT).show()
-
+        CoroutineScope(Dispatchers.Main).launch {
+            Toast.makeText(applicationContext, "Bấm QUAY LẠI lần nữa để thoát", Toast.LENGTH_SHORT).show()
+        }
         Handler(Looper.getMainLooper()).postDelayed(Runnable {
             doubleBackToExitPressedOnce = false
         }, 2000)
@@ -241,7 +242,6 @@ fun LogInScene() {
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Button(
                         onClick = {
-
                             CoroutineScope(Dispatchers.IO).launch {
                                 isLoading = true
                                 val token = API.getAuthenticatedToken(context = context, username = accountText.trim(),password = passwordText.trim())
@@ -264,10 +264,18 @@ fun LogInScene() {
                                         mPrefEditor.apply()
                                         context.startActivity(Intent(context,MainActivity::class.java))
                                     } else {
-                                        Toast.makeText(context,"Đăng nhập không thành công",Toast.LENGTH_LONG).show()
+                                        CoroutineScope(Dispatchers.Main).launch {
+                                            Toast.makeText(context,"Đăng nhập không thành công",Toast.LENGTH_LONG).show()
+                                        }
                                     }
                                 } else {
-                                    Toast.makeText(context,"Đăng nhập không thành công",Toast.LENGTH_LONG).show()
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        Toast.makeText(
+                                            context,
+                                            "Đăng nhập không thành công",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
                                 }
                                 isLoading=false
                             }

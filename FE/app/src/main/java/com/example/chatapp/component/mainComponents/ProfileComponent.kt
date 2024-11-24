@@ -74,8 +74,17 @@ fun ProfileComponent() {
                 .background(Color.LightGray)
         ) {
             item {
-                Box(modifier = Modifier.fillMaxWidth().background(Color.White)){
-                    Image(painter = painterResource(id = R.drawable.background), contentDescription = "", modifier = Modifier.fillMaxWidth().height(viewConfiguration.minimumTouchTargetSize.height*3f).align(Alignment.TopCenter))
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)) {
+                    Image(
+                        painter = painterResource(id = R.drawable.background),
+                        contentDescription = "",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(viewConfiguration.minimumTouchTargetSize.height * 3f)
+                            .align(Alignment.TopCenter)
+                    )
                     //Avatar function
                     Column(
                         modifier = Modifier
@@ -84,7 +93,7 @@ fun ProfileComponent() {
                             .background(Color.Transparent),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(viewConfiguration.minimumTouchTargetSize.height*2f))
+                        Spacer(modifier = Modifier.height(viewConfiguration.minimumTouchTargetSize.height * 2f))
                         //Avatar
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -372,9 +381,9 @@ fun ProfileComponent() {
                 Button(
                     onClick = {
                         mPrefEditor.putBoolean(Define.LOGIN_STATE, false)
-                        mPrefEditor.putBoolean(Define.REMEMBER,false)
+                        mPrefEditor.putBoolean(Define.REMEMBER, false)
                         mPrefEditor.apply()
-                        context.startActivity(Intent(context,LogInActivity::class.java))
+                        context.startActivity(Intent(context, LogInActivity::class.java))
                         (context as Activity).finish()
                     }, modifier = Modifier
                         .fillMaxWidth()

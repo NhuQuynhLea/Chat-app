@@ -4,5 +4,5 @@ class Conversation {
     var id = ""
     var name = ""
     var memberList = arrayListOf<User>()
-    var messageList = arrayListOf<String>()
+    var messageList = arrayListOf<Message>()
 }

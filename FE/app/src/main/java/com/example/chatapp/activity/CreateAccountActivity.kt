@@ -201,7 +201,7 @@ fun CreateAccountScene() {
                                         email = emailText.trim(),
                                         password = passwordText.trim()
                                     )
-                                ) (context as Activity).finish() else Toast.makeText(context,"Đăng ký không thành công", Toast.LENGTH_LONG).show()
+                                ) (context as Activity).finish() else CoroutineScope(Dispatchers.Main).launch { Toast.makeText(context,"Đăng ký không thành công", Toast.LENGTH_LONG).show() }
                                 isLoading = false
                             }
                         },

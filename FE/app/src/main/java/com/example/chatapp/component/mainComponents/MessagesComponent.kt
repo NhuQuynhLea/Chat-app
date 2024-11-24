@@ -119,6 +119,7 @@ fun MessagesComponent() {
                         .height(80.dp)
                         .clickable {
                             val intent = Intent(context, ChatActivity::class.java)
+                            Storage.conversationChosen = conversation
                             context.startActivity(intent)
                         }
                 ) {

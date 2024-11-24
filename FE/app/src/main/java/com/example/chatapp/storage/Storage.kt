@@ -10,4 +10,5 @@ object Storage {
     var email = ""
     var id = ""
     var listConversation = arrayListOf<Conversation>()
+    var conversationChosen = Conversation()
 }
