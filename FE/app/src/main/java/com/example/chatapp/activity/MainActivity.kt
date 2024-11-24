@@ -2,11 +2,9 @@
 
 package com.example.chatapp.activity
 
-import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.widget.Space
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,29 +12,23 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.PersonAddAlt1
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.AddCircle
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,15 +51,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,13 +66,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.chatapp.R
+import com.example.chatapp.component.mainComponents.ContactComponent
+import com.example.chatapp.component.mainComponents.MessagesComponent
+import com.example.chatapp.component.mainComponents.ProfileComponent
+import com.example.chatapp.define.Define
+import com.example.chatapp.network.API
+import com.example.chatapp.storage.CustomFont
+import com.example.chatapp.storage.Storage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.example.chatapp.activity.call.CallScreen
 import com.example.chatapp.activity.call.CallViewModel
 import com.example.chatapp.activity.call.State
-import com.example.chatapp.activity.component.ContactComponent
-import com.example.chatapp.activity.component.MessagesComponent
-import com.example.chatapp.activity.component.PrivateComponent
-import com.example.chatapp.activity.connect.ConnectScreen
+
+
 import com.example.chatapp.activity.connect.ConnectViewModel
 import io.getstream.video.android.compose.theme.VideoTheme
 import kotlinx.serialization.Serializable
@@ -90,115 +89,82 @@ import java.time.LocalTime
 import java.util.LinkedList
 import java.util.Queue
 
-//class MainActivity : ComponentActivity() {
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        setContent {
-//            MainScene()
-//        }
-//    }
-//    private var doubleBackToExitPressedOnce = false
-//    override fun onBackPressed() {
-//        if (doubleBackToExitPressedOnce) {
-//            super.onBackPressed()
-//            return
-//        }
-//
-//        this.doubleBackToExitPressedOnce = true
-//        Toast.makeText(this, "Please click BACK again to exit", Toast.LENGTH_SHORT).show()
-//
-//        Handler(Looper.getMainLooper()).postDelayed(Runnable { doubleBackToExitPressedOnce = false }, 2000)
-//    }
-//}
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+//        enableEdgeToEdge()
         setContent {
             MainScene()
-//            Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-//                val navController = rememberNavController()
-//                NavHost(
-//                    navController = navController,
-//                    startDestination = ConnectRoute,
-//                    modifier = Modifier.padding(innerPadding)
-//                ) {
-//                    composable<ConnectRoute> {
-//                        val viewModel = koinViewModel<ConnectViewModel>()
-//                        val state = viewModel.state
-//
-//                        LaunchedEffect(key1 = state.isConnected) {
-//                            if(state.isConnected) {
-//                                navController.navigate(VideoCallRoute) {
-//                                    popUpTo(ConnectRoute) {
-//                                        inclusive = true
-//                                    }
-//                                }
-//                            }
-//                        }
-//
-//                        ConnectScreen(state = state, onAction = viewModel::onAction)
-//                    }
-//                    composable<VideoCallRoute> {
-//                        val viewModel = koinViewModel<CallViewModel>()
-//                        val state = viewModel.state
-//
-//                        LaunchedEffect(key1 = state.callState) {
-//                            if(state.callState == State.ENDED) {
-//                                navController.navigate(ConnectRoute) {
-//                                    popUpTo(VideoCallRoute) {
-//                                        inclusive = true
-//                                    }
-//                                }
-//                            }
-//                        }
-//
-//                        VideoTheme {
-//
-//                            CallScreen(state = state, onAction = viewModel::onAction)
-//                        }
-//                    }
-//                }
-//            }
         }
+    }
+
+    private var doubleBackToExitPressedOnce = false
+    override fun onBackPressed() {
+        if (doubleBackToExitPressedOnce) {
+            val sharedPreferences = getSharedPreferences(packageName, MODE_PRIVATE)
+            val mPrefEditor = sharedPreferences.edit()
+            mPrefEditor.putBoolean(Define.LOGIN_STATE,false)
+            mPrefEditor.apply()
+            finishAffinity()
+            super.onBackPressed()
+            return
+        }
+
+        this.doubleBackToExitPressedOnce = true
+        Toast.makeText(this, "Please click BACK again to exit", Toast.LENGTH_SHORT).show()
+
+        Handler(Looper.getMainLooper()).postDelayed(Runnable {
+            doubleBackToExitPressedOnce = false
+        }, 2000)
     }
 }
 
-//@kotlinx.serialization.Serializable
-//data object ConnectRoute
-//
-//@Serializable
-//data object VideoCallRoute
 @Preview
 @Composable
 fun MainScene() {
     var sceneState by remember {
-        mutableStateOf("Contact")
+        mutableStateOf("Liên hệ")
     }
+    val context = LocalContext.current
     val viewConfiguration = LocalViewConfiguration.current
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     var addMenuExpanded by remember {
         mutableStateOf(false)
     }
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            Storage.listConversation = API.getAllConversation(context = context, Storage.token)
+            isLoading = false
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
+            .pointerInput(Unit) {
+                detectTapGestures {
+                    focusManager.clearFocus()
+                }
+            }
     ) {
 
         //Heading
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(viewConfiguration.minimumTouchTargetSize.height * 1.5f)
+                .height(viewConfiguration.minimumTouchTargetSize.height)
                 .background(color = colorResource(id = R.color.purple_700))
                 .fillMaxWidth()
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
-                    .height(viewConfiguration.minimumTouchTargetSize.height * 1.5f)
+                    .padding(horizontal = 20.dp)
+                    .height(viewConfiguration.minimumTouchTargetSize.height)
                     .background(
                         color = colorResource(id = R.color.purple_700)
                     ),
@@ -208,22 +174,26 @@ fun MainScene() {
                 Text(
                     text = sceneState,
                     color = Color.White,
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold, fontFamily = CustomFont.font
                 )
                 Box() {
                     Icon(
                         imageVector = Icons.Outlined.AddCircle,
                         contentDescription = "",
                         tint = Color.White,
-                        modifier = Modifier.clickable {
-                            addMenuExpanded = !addMenuExpanded
-                        }.align(Alignment.Center)
+                        modifier = Modifier
+                            .clickable {
+                                addMenuExpanded = !addMenuExpanded
+                            }
+                            .align(Alignment.Center)
                     )
                     DropdownMenu(
                         expanded = addMenuExpanded,
                         onDismissRequest = { addMenuExpanded = false },
-                        modifier = Modifier.background(Color.White).align(Alignment.Center)
+                        modifier = Modifier
+                            .background(Color.White)
+                            .align(Alignment.Center)
                     ) {
                         DropdownMenuItem(text = {
                             Row(
@@ -249,7 +219,11 @@ fun MainScene() {
                                     contentDescription = "",
                                     tint = Color.Black
                                 )
-                                Text(text = "Tạo nhóm")
+                                Text(
+                                    text = "Tạo nhóm",
+                                    textAlign = TextAlign.Center,
+                                    fontFamily = CustomFont.font
+                                )
                             }
                         }, onClick = { /*TODO*/ })
                     }
@@ -264,104 +238,90 @@ fun MainScene() {
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Color.LightGray)
-                .height(screenHeight - viewConfiguration.minimumTouchTargetSize.height * 2.7f)
+                .height(screenHeight - viewConfiguration.minimumTouchTargetSize.height * 2.2f)
         ) {
-            when (sceneState) {
-                "Messages" -> MessagesComponent()
-                "Contact" -> ContactComponent()
-                "Private" -> PrivateComponent()
+            if (!isLoading) {
+                when (sceneState) {
+                    "Tin nhắn" -> MessagesComponent()
+                    "Liên hệ" -> ContactComponent()
+                    "Tài khoản" -> ProfileComponent()
+                }
             }
 
         }
 
         //BottomBar
-        Card(
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 6.dp
-            ), // Adjust the elevation as needed
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.Transparent
-            ),
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(viewConfiguration.minimumTouchTargetSize.height * 1.2f)
+                .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                .border(
+                    width = 1.dp,
+                    color = Color.Gray,
+                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+                )
+                .background(Color.White)
+            ,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedCard(
-                border = BorderStroke(
-                    1.dp,
-                    colorResource(id = R.color.mainColor).copy(alpha = 0.3f)
-                ), // Adjust the border width and color
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.messenger_icon),
-                        contentDescription = "Messages",
-                        modifier = Modifier
-                            .weight(1 / 3f)
-                            .fillMaxHeight()
-                            .pointerInput(Unit) {
-                                detectTapGestures {
-                                    sceneState = "Messages"
-                                }
-                            }
-                            .padding(10.dp),
-                        colorFilter = if (sceneState.equals("Messages")) {
-                            ColorFilter.tint(colorResource(id = R.color.purple_700))
-                        } else {
-                            ColorFilter.tint(Color.LightGray)
+            Image(
+                painter = painterResource(id = R.drawable.messenger_icon),
+                contentDescription = "Tin nhắn",
+                modifier = Modifier
+                    .weight(1 / 3f)
+                    .fillMaxHeight()
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            sceneState = "Tin nhắn"
                         }
-                    )
-
-                    Image(
-                        painter = painterResource(id = R.drawable.call_icon),
-                        contentDescription = "Contact",
-                        modifier = Modifier
-                            .weight(1 / 3f)
-                            .fillMaxHeight()
-                            .pointerInput(Unit) {
-                                detectTapGestures {
-                                    sceneState = "Contact"
-                                }
-                            }
-                            .padding(10.dp),
-                        colorFilter = if (sceneState.equals("Contact")) {
-                            ColorFilter.tint(colorResource(id = R.color.purple_700))
-                        } else {
-                            ColorFilter.tint(Color.LightGray)
-                        }
-                    )
-
-                    Image(
-                        painter = painterResource(id = R.drawable.person_icon),
-                        contentDescription = "Private",
-                        modifier = Modifier
-                            .weight(1 / 3f)
-                            .fillMaxHeight()
-                            .pointerInput(Unit) {
-                                detectTapGestures {
-                                    sceneState = "Private"
-                                }
-                            }
-                            .padding(10.dp),
-                        colorFilter = if (sceneState.equals("Private")) {
-                            ColorFilter.tint(colorResource(id = R.color.purple_700))
-                        } else {
-                            ColorFilter.tint(Color.LightGray)
-                        }
-                    )
+                    }
+                    .padding(10.dp),
+                colorFilter = if (sceneState.equals("Tin nhắn")) {
+                    ColorFilter.tint(colorResource(id = R.color.purple_700))
+                } else {
+                    ColorFilter.tint(Color.LightGray)
                 }
+            )
 
-            }
+            Image(
+                painter = painterResource(id = R.drawable.call_icon),
+                contentDescription = "Liên hệ",
+                modifier = Modifier
+                    .weight(1 / 3f)
+                    .fillMaxHeight()
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            sceneState = "Liên hệ"
+                        }
+                    }
+                    .padding(10.dp),
+                colorFilter = if (sceneState.equals("Liên hệ")) {
+                    ColorFilter.tint(colorResource(id = R.color.purple_700))
+                } else {
+                    ColorFilter.tint(Color.LightGray)
+                }
+            )
+
+            Image(
+                painter = painterResource(id = R.drawable.person_icon),
+                contentDescription = "Tài khoản",
+                modifier = Modifier
+                    .weight(1 / 3f)
+                    .fillMaxHeight()
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            sceneState = "Tài khoản"
+                        }
+                    }
+                    .padding(10.dp),
+                colorFilter = if (sceneState.equals("Tài khoản")) {
+                    ColorFilter.tint(colorResource(id = R.color.purple_700))
+                } else {
+                    ColorFilter.tint(Color.LightGray)
+                }
+            )
         }
-
     }
-
+    if (isLoading) LoadingDialog()
 }

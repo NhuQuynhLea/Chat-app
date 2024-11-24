@@ -2,9 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:name=".activity.CallActivity"
         android:allowBackup="true"
+        android:usesCleartextTraffic="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -20,7 +23,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activity.SignInActivity"
+        <activity android:name=".activity.LogInActivity"
             android:exported="true">
         </activity>
         <activity android:name=".activity.CreateAccountActivity"
@@ -29,11 +32,18 @@
 
         <activity android:name=".activity.MainActivity"
             android:exported="true">
+
         </activity>
 
         <activity android:name=".activity.ChatActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
+        </activity>
+        <activity android:name=".activity.PropertyActivity"
+            android:exported="true">
+        </activity>
+        <activity android:name=".activity.MultiTaskActivity"
+            android:exported="true">
         </activity>
         <service
             android:name=".activity.CustomFirebaseMessagingService"
@@ -42,6 +52,16 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+        <activity
+            android:name=".activity.IncomingCallActivity"
+            android:exported="false"
+            android:showOnLockScreen="true"
+            android:showWhenLocked="true">
+            <intent-filter android:priority="1">
+                <action android:name="io.getstream.video.android.action.INCOMING_CALL" />
+            </intent-filter>
+        </activity>
+
     </application>
 
 

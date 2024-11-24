@@ -1,5 +1,6 @@
 package com.example.chatapp.activity.call
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,9 +25,12 @@ class CallViewModel( private val videoClient: StreamVideo): ViewModel() {
                 videoClient.logOut()
                 state = state.copy(callState = State.ENDED)
             }
+
+            else -> {}
         }
     }
     private fun joinCall() {
+        val participants = listOf("thierry", "tommaso")
         if(state.callState == State.ACTIVE) {
             return
         }
@@ -39,19 +43,33 @@ class CallViewModel( private val videoClient: StreamVideo): ViewModel() {
                 ?.calls
                 ?.isEmpty() == true
 
-            state.call.join(create = shouldCreate)
-                .onSuccess {
-                    state = state.copy(
-                        callState = State.ACTIVE,
-                        error = null
-                    )
-                }
-                .onError {
-                    state = state.copy(
-                        error = it.message,
-                        callState = null
-                    )
-                }
+            val createResult = state.call.create(
+                memberIds = participants,
+                custom = mapOf(
+                    "caller_name" to videoClient.user.name,
+                    "caller_id" to videoClient.user.id
+                ),
+                ring = true
+            )
+            if(createResult.isSuccess){
+                state.call.join(create = shouldCreate)
+                    .onSuccess {
+                        state = state.copy(
+                            callState = State.ACTIVE,
+                            error = null
+                        )
+                    }
+                    .onError {
+                        state = state.copy(
+                            error = it.message,
+                            callState = null
+                        )
+                    }
+            }else{
+                Log.e("joinCall: ", "error")
+            }
+
+
         }
     }
 }

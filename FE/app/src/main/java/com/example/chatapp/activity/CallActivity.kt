@@ -36,7 +36,7 @@ class CallActivity: Application() {
                 apiKey = "cptuxtqg7and",
                 user = User(
                     id = "username",
-                    name = username,
+                    name = username ,
                     type = UserType.Guest
                 ),
                 notificationConfig = notificationConfig,
