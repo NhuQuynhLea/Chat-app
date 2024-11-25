@@ -2,6 +2,7 @@ package com.example.chatapp.activity
 
 import android.app.Application
 import com.example.chatapp.activity.appModule
+import com.example.chatapp.storage.Storage
 import io.getstream.android.push.firebase.FirebasePushDeviceGenerator
 import io.getstream.video.android.core.StreamVideo
 import io.getstream.video.android.core.StreamVideoBuilder
@@ -35,10 +36,12 @@ class CallActivity: Application() {
                 context = this,
                 apiKey = "cptuxtqg7and",
                 user = User(
-                    id = "username",
+                    id = "user",
                     name = username ,
+
                     type = UserType.Guest
                 ),
+//                token = Storage.token,
                 notificationConfig = notificationConfig,
             ).build()
         }

@@ -1,6 +1,8 @@
 package com.example.chatapp.component.mainComponents
 
+import android.annotation.SuppressLint
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,7 +57,9 @@ import com.example.chatapp.storage.Storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlin.math.log
 
+@SuppressLint("SuspiciousIndentation")
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview
 @Composable
@@ -119,6 +123,9 @@ fun MessagesComponent() {
                         .height(80.dp)
                         .clickable {
                             val intent = Intent(context, ChatActivity::class.java)
+                            intent.putExtra("friend_id", conversation.id)
+                            intent.putExtra("friend_email", conversation.email)
+
                             context.startActivity(intent)
                         }
                 ) {

@@ -101,19 +101,15 @@ import org.koin.androidx.compose.koinViewModel
 import kotlin.math.ceil
 
 var name = ""
+var friendId = ""
 
 class ChatActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         name = intent.getStringExtra("name") ?: "Guest"
-
+        friendId = intent.getStringExtra("friend_id")?: ""
         setContent {
-//            val viewModel = koinViewModel<ConnectViewModel>()
-//            val state = viewModel.state
-//            ChatScene(
-//                state = state, onAction = viewModel::onAction
-//            )
             Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                 val navController = rememberNavController()
                 NavHost(
@@ -141,6 +137,7 @@ class ChatActivity : ComponentActivity() {
                     composable<VideoCallRoute> {
                         val viewModel = koinViewModel<CallViewModel>()
                         val state = viewModel.state
+                        viewModel.initCall(friendId);
 
                         LaunchedEffect(key1 = state.callState) {
                             if(state.callState == State.ENDED) {
@@ -153,8 +150,9 @@ class ChatActivity : ComponentActivity() {
                         }
 
                         VideoTheme {
-                            Log.e("STATE: ",state.toString() )
-                            CallScreen(state = state, onAction = viewModel::onAction)
+                            CallScreen(state = state, onAction = { action ->
+                                viewModel.onAction(action, friendId)
+                            })
                         }
                     }
                 }

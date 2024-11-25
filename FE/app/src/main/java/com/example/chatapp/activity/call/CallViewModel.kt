@@ -6,22 +6,26 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.chatapp.storage.Storage
 import io.getstream.video.android.core.StreamVideo
 import kotlinx.coroutines.launch
 
-class CallViewModel( private val videoClient: StreamVideo): ViewModel() {
-    var state by mutableStateOf(CallState(
-        call = videoClient.call("default", "main-room")
-    ))
+class CallViewModel(private val videoClient: StreamVideo) : ViewModel() {
+    var state by mutableStateOf(
+        CallState(
+//        call = videoClient.call("default", )
+        )
+    )
         private set
 
-    fun onAction(action: CallAction) {
-        when(action) {
+    fun onAction(action: CallAction, friendId: String) {
+        when (action) {
             CallAction.JoinCall -> {
-                joinCall()
+                joinCall(friendId)
             }
+
             CallAction.OnDisconnectClick -> {
-                state.call.leave()
+                state.call?.leave()
                 videoClient.logOut()
                 state = state.copy(callState = State.ENDED)
             }
@@ -29,10 +33,30 @@ class CallViewModel( private val videoClient: StreamVideo): ViewModel() {
             else -> {}
         }
     }
-    private fun joinCall() {
-        val participants = listOf("thierry", "tommaso")
-        if(state.callState == State.ACTIVE) {
+
+
+
+    public fun initCall(friendId: String) {
+        val roomId = friendId; //Id conversation
+        viewModelScope.launch {
+            try {
+                val call = videoClient.call("default", roomId);
+                call.create();
+                Log.i("JOINCALL", "Init call successful with ID: ${call.id}")
+                state = state.copy(call = call)
+            } catch (e: Exception) {
+                Log.e("JOINCALL", "Failed to initialize call: ${e.message}")
+                state = state.copy(error = e.message)
+            }
+        }
+    }
+
+    private fun joinCall(friendId: String) {
+        if (state.callState == State.ACTIVE) {
             return
+        }
+        if (state.call == null) {
+            initCall(friendId);
         }
         viewModelScope.launch {
             state = state.copy(callState = State.JOINING)
@@ -43,31 +67,23 @@ class CallViewModel( private val videoClient: StreamVideo): ViewModel() {
                 ?.calls
                 ?.isEmpty() == true
 
-            val createResult = state.call.create(
-                memberIds = participants,
-                custom = mapOf(
-                    "caller_name" to videoClient.user.name,
-                    "caller_id" to videoClient.user.id
-                ),
-                ring = true
-            )
-            if(createResult.isSuccess){
-                state.call.join(create = shouldCreate)
-                    .onSuccess {
-                        state = state.copy(
-                            callState = State.ACTIVE,
-                            error = null
-                        )
-                    }
-                    .onError {
-                        state = state.copy(
-                            error = it.message,
-                            callState = null
-                        )
-                    }
-            }else{
-                Log.e("joinCall: ", "error")
-            }
+
+            state.call!!.join(create = shouldCreate)
+                .onSuccess {
+                    state = state.copy(
+                        callState = State.ACTIVE,
+                        error = null
+                    )
+                }
+                .onError {
+                    state = state.copy(
+                        error = it.message,
+                        callState = null
+                    )
+                }
+//            }else{
+//                Log.e("joinCall: ", "error")
+//            }
 
 
         }

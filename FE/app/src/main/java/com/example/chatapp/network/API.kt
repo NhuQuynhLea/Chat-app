@@ -124,9 +124,13 @@ object API {
 
         conversation.name = jsonObject.getString("name")
         conversation.id = jsonObject.getString("publicId")
+
         val memberList = jsonObject.getJSONArray("members")
+
         for (i in 0..memberList.length()-1){
-            conversation.memberList.add(readUserFromJson(memberList.getJSONObject(i)))
+            val user = readUserFromJson(memberList.getJSONObject(i));
+            Log.i("READAPI", "readConversationFromJson: " + user.userName + user.email);
+            conversation.memberList.add(user)
         }
 
         return conversation

@@ -65,36 +65,38 @@ fun CallScreen (
                 emptyList()
             }
             val context = LocalContext.current
-            CallContent(
-                call = state.call,
-                modifier = Modifier
-                    .fillMaxSize(),
-                permissions = rememberCallPermissionsState(
-                    call = state.call,
-                    permissions = basePermissions + bluetoothConnectPermission + notificationPermission,
-                    onPermissionsResult = { permissions ->
-                        if(permissions.values.contains(false)) {
-                            Toast.makeText(
-                                context,
-                                "Please grant all permissions to use this app.",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        } else {
-                            onAction(CallAction.JoinCall)
+            state.call?.let {
+                CallContent(
+                    call = it,
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    permissions = rememberCallPermissionsState(
+                        call = state.call,
+                        permissions = basePermissions + bluetoothConnectPermission + notificationPermission,
+                        onPermissionsResult = { permissions ->
+                            if(permissions.values.contains(false)) {
+                                Toast.makeText(
+                                    context,
+                                    "Please grant all permissions to use this app.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } else {
+                                onAction(CallAction.JoinCall)
+                            }
                         }
-                    }
-                ),
-                onCallAction = { action ->
-                    if(action == LeaveCall) {
+                    ),
+                    onCallAction = { action ->
+                        if(action == LeaveCall) {
+                            onAction(CallAction.OnDisconnectClick)
+                        }
+
+                        DefaultOnCallActionHandler.onCallAction(state.call, action)
+                    },
+                    onBackPressed = {
                         onAction(CallAction.OnDisconnectClick)
                     }
-
-                    DefaultOnCallActionHandler.onCallAction(state.call, action)
-                },
-                onBackPressed = {
-                    onAction(CallAction.OnDisconnectClick)
-                }
-            )
+                )
+            }
         }
     }
 }

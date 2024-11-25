@@ -5,6 +5,7 @@ package com.example.chatapp.activity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -151,7 +152,7 @@ fun MainScene() {
                 }
             }
     ) {
-
+        Log.e("storage: ",Storage.id )
         //Heading
         Row(
             modifier = Modifier

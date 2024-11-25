@@ -1,5 +1,6 @@
 package com.example.chatapp.activity
 
+import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import io.getstream.android.push.firebase.FirebaseMessagingDelegate
@@ -18,7 +19,8 @@ class CustomFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(message: RemoteMessage) {
         try {
             if (FirebaseMessagingDelegate.handleRemoteMessage(message)) {
-                // RemoteMessage was from Stream and it is already processed
+                Log.e( "onMessageReceived: ",message.toString() )
+            // RemoteMessage was from Stream and it is already processed
             } else {
                 // RemoteMessage wasn't sent from Stream and it needs to be handled by you
             }
