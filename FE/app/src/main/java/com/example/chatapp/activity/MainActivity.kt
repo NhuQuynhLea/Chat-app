@@ -7,9 +7,11 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -58,15 +60,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.example.chatapp.R
 import com.example.chatapp.component.mainComponents.ContactComponent
 import com.example.chatapp.component.mainComponents.MessagesComponent
 import com.example.chatapp.component.mainComponents.ProfileComponent
 import com.example.chatapp.define.Define
+import com.example.chatapp.model.ViewModelTest
 import com.example.chatapp.network.API
 import com.example.chatapp.network.SSEClient
 import com.example.chatapp.network.SSEHandler
+import com.example.chatapp.network.SSEService
 import com.example.chatapp.storage.CustomFont
 import com.example.chatapp.storage.Storage
 import com.launchdarkly.eventsource.MessageEvent
@@ -76,75 +82,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
-    private lateinit var sseClient: SSEClient
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        sseClient = SSEClient()
-        startSSE()
+        stopService(Intent(this, SSEService::class.java))
+        startService(Intent(this, SSEService::class.java))
         setContent {
             MainScene()
         }
     }
 
-    private fun startSSE() {
-        sseClient.initSse(
-            sseHandler = object : SSEHandler {
-                override fun onSSEConnectionOpened() {
-                    updateStatus("SSE Connection Opened")
-                }
-
-                override fun onSSEConnectionClosed() {
-                    updateStatus("SSE Connection Closed")
-                }
-
-                override fun onSSEEventReceived(event: String, messageEvent: MessageEvent) {
-                    updateStatus("Received Event: $event with Message: ${messageEvent.data}")
-                }
-
-                override fun onSSEError(t: Throwable) {
-                    updateStatus("Error occurred in SSE connection")
-                }
-            },
-            errorCallback = { throwable ->
-                updateStatus("Error initializing SSE: ${throwable.message}")
-            }
-        )
-    }
-
-    private fun stopSSE() {
-        // Ensure to disconnect the SSE client when the activity stops
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                sseClient.disconnect()
-                withContext(Dispatchers.Main) {
-                    updateStatus("SSE Disconnected")
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    private fun updateStatus(status: String) {
-        runOnUiThread {
-            Log.e("check",status)
-        }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        startSSE()  // Ensure to start the SSE connection when the activity is started
-    }
-
-    override fun onStop() {
-        super.onStop()
-        stopSSE()  // Ensure to stop the SSE connection when the activity is stopped
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        stopSSE()  // Ensure proper cleanup
-    }
 
     private var doubleBackToExitPressedOnce = false
     override fun onBackPressed() {
@@ -171,7 +118,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScene() {
     var sceneState by remember {
-        mutableStateOf("Liên hệ")
+        mutableStateOf("Tin nhắn")
     }
     val context = LocalContext.current
     val viewConfiguration = LocalViewConfiguration.current
@@ -183,6 +130,7 @@ fun MainScene() {
         mutableStateOf(true)
     }
     val focusManager = LocalFocusManager.current
+
     LaunchedEffect(Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             Storage.listConversation = API.getAllConversation(context = context, Storage.token)

@@ -9,9 +9,11 @@ import com.example.chatapp.model.User
 import okhttp3.FormBody
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.contracts.contract
@@ -92,9 +94,10 @@ object API {
         return user
     }
 
+
+
     fun getAllConversation(context: Context,token:String):ArrayList<Conversation> {
         val arrayList = arrayListOf<Conversation>()
-        Log.e("token",token)
         val builder = Request.Builder()
         builder.addHeader("Authorization", "Bearer $token")
         builder.url("${context.getString(R.string.url)}api/conversations")
@@ -106,10 +109,28 @@ object API {
                 arrayList.add(readConversationFromJson(jsonObject = json.getJSONObject(i)))
             }
         } catch (e: Exception) {
-            Log.e("error", e.message!!)
+            Log.e("All Conversation error", e.message!!)
         }
 
         return arrayList
+    }
+
+    fun getOneConversation(context: Context, id:String,token:String):Conversation {
+        var conversation = Conversation()
+        Log.e("token",token)
+        val builder = Request.Builder()
+        builder.addHeader("Authorization", "Bearer $token")
+        builder.url("${context.getString(R.string.url)}api/conversations/get-one-by-public-id?conversationId=${id}")
+        val request = builder.build()
+        try {
+            val response = client.newCall(request).execute()
+            val json = JSONObject(response.body!!.string())
+            conversation = readConversationFromJson(jsonObject = json)
+        } catch (e: Exception) {
+            Log.e("One Conversation error", e.message!!)
+        }
+
+        return conversation
     }
 
 
@@ -132,26 +153,23 @@ object API {
         for (i in 0..memberList.length()-1){
             conversation.memberList.add(readUserFromJson(memberList.getJSONObject(i)))
         }
-
         val messageList = jsonObject.getJSONArray("messages")
         for (i in 0..messageList.length()-1){
-            conversation.messageList.add(readMessageFromJson(memberList.getJSONObject(i)))
+            conversation.messageList.add(readMessageFromJson(messageList.getJSONObject(i)))
         }
 
         return conversation
     }
 
     fun readMessageFromJson(jsonObject: JSONObject):Message{
+        Log.e("check",jsonObject.toString())
         val message = Message()
         message.textContent = jsonObject.getString("textContent")
         message.sendDate = jsonObject.getString("sendDate")
+        message.state = jsonObject.getString("state")
         message.publicId = jsonObject.getString("publicId")
         message.conversationId = jsonObject.getString("conversationId")
         message.type = jsonObject.getString("type")
-        var mediaContent = jsonObject.getJSONArray("mediaContent")
-        for (i in 0..mediaContent.length()-1){
-            message.mediaContent.add(mediaContent[i].toString())
-        }
         message.mimeType = jsonObject.getString("mimeType")
         message.senderId = jsonObject.getString("senderId")
         return message
@@ -161,14 +179,12 @@ object API {
         val jsonObject = JSONObject()
 
         jsonObject.put("textContent",message.textContent)
-        jsonObject.put("sendDate",message.sendDate)
-        jsonObject.put("publicId",message.publicId)
+        jsonObject.put("sendDate","")
+        jsonObject.put("publicId","")
+        jsonObject.put("state","SENT")
         jsonObject.put("conversationId",message.conversationId)
-        jsonObject.put("type",message.type)
-        jsonObject.put("mediaContent",message.mediaContent)
-        jsonObject.put("mimeType",message.mimeType)
-        jsonObject.put("senderId",message.senderId)
-
+        jsonObject.put("type","TEXT")
+        jsonObject.put("mimeType",null)
         return jsonObject
     }
 
@@ -199,6 +215,28 @@ object API {
         json.put("name",name)
         json.put("member",userIdList)
         val requestBody = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json.toString())
+        builder.post(requestBody)
+        val request = builder.build()
+        try {
+            val response = client.newCall(request).execute()
+            Log.e("check",response.isSuccessful.toString())
+            Log.e("check",response.code.toString())
+        }catch (e:Exception){
+            Log.e("createConverError",e.message.toString())
+        }
+    }
+
+    fun sendMessage(context: Context, message: Message,token: String){
+        val builder = Request.Builder()
+        builder.url("${context.getString(R.string.url)}api/messages/send")
+        builder.addHeader("Authorization", "Bearer $token")
+        val json = writeMessageToJson(message)
+        val requestBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .apply {
+                addFormDataPart("dto",json.toString())
+            }
+            .build()
         builder.post(requestBody)
         val request = builder.build()
         try {

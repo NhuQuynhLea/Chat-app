@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.chatapp.R
 import com.example.chatapp.activity.ChatActivity
+import com.example.chatapp.network.API
 import com.example.chatapp.storage.CustomFont
 import com.example.chatapp.storage.Storage
 import kotlinx.coroutines.CoroutineScope
@@ -118,9 +119,12 @@ fun MessagesComponent() {
                         .fillMaxWidth()
                         .height(80.dp)
                         .clickable {
-                            val intent = Intent(context, ChatActivity::class.java)
-                            Storage.conversationChosen = conversation
-                            context.startActivity(intent)
+                            CoroutineScope(Dispatchers.IO).launch {
+                                Storage.conversationChosen = API.getOneConversation(context = context, id = conversation.id, token = Storage.token)
+                                Storage.conversationChosen.messageList.sortBy { it.sendDate }
+                                val intent = Intent(context, ChatActivity::class.java)
+                                context.startActivity(intent)
+                            }
                         }
                 ) {
                     Column(

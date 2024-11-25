@@ -43,6 +43,10 @@
         <activity android:name=".activity.MultiTaskActivity"
             android:exported="true">
         </activity>
+
+        <service
+            android:name=".network.SSEService"
+            android:exported="false"/>
     </application>
 
 

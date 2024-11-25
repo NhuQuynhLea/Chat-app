@@ -1,6 +1,7 @@
 package com.example.chatapp.component.mainComponents
 
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,6 +30,7 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,7 +52,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.chatapp.R
 import com.example.chatapp.activity.ChatActivity
+import com.example.chatapp.model.User
+import com.example.chatapp.network.API
 import com.example.chatapp.storage.CustomFont
+import com.example.chatapp.storage.Storage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.LinkedList
 import java.util.Queue
 
@@ -57,22 +66,26 @@ import java.util.Queue
 @Preview
 @Composable
 fun ContactComponent() {
-    var name = listOf("Trần Trung Kiên","Quỳnh Lea", "Dương quá", "Quỳnh Lea", "Nguyễn Cao Hà Phương")
-    name = name.sorted()
-    val type: Queue<String> = LinkedList()
-    name.forEach {
-        if (!type.contains(it[0].toString().uppercase())) type.add(it[0].toString().uppercase())
-    }
-    var currentType = ""
     var searchText by remember {
         mutableStateOf("")
     }
-    var searchActive by remember {
-        mutableStateOf(false)
-    }
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
-
+    Storage.listConversation.forEach {
+        for (i in 0..it.memberList.size-1){
+            var isContain = false
+            for (j in 0..Storage.listContact.size-1){
+                if (Storage.listContact[j].id.equals(it.memberList[i].id)){
+                    isContain = true
+                    break
+                }
+            }
+            if (!isContain&&!it.memberList[i].id.equals(Storage.id)){
+                Storage.listContact.add(it.memberList[i])
+            }
+        }
+    }
+    Storage.listContact.sortBy { it.userName }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -119,49 +132,37 @@ fun ContactComponent() {
                 modifier = Modifier.fillMaxWidth()
             )
         }
-
+        if (Storage.listContact.size!=0)
         LazyColumn(modifier = Modifier.padding(top = 10.dp)) {
-            items(count =name.size) { item ->
-                if (currentType.isEmpty()){
-                    currentType= type.poll()!!
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 25.dp)
-                    ) {
-                        Text(
-                            text = currentType,
-                            color = colorResource(id = R.color.mainColor),
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }else{
-                    if (!name[item][0].toString().equals(currentType)){
-                        currentType= type.poll()!!
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 25.dp)
-                        ) {
-                            Text(
-                                text = currentType,
-                                color = colorResource(id = R.color.mainColor),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
+            items(count =Storage.listContact.size) { index ->
+                if (Storage.listContact[index].userName.lowercase().contains(searchText.trim()))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(80.dp)
                         .clickable {
+                            var isExist = false
+                            var x=0
+                            for (i in 0..Storage.listConversation.size-1){
+                                if (Storage.listConversation[i].name.equals(Storage.listContact[index].userName)){
+                                    isExist = true
+                                    x=i
+                                    break
+                                }
+                            }
+                            if (isExist){
+                                Storage.conversationChosen=Storage.listConversation[x]
+                            } else {
+                                API.createConversation(context = context, name = Storage.listContact[index].userName, userIdList = arrayListOf(Storage.listContact[index].id), token = Storage.token)
+                                Storage.listConversation = API.getAllConversation(context = context, token = Storage.token)
+                                for (i in 0..Storage.listConversation.size-1){
+                                    if (Storage.listConversation[i].name.equals(Storage.listContact[index].userName)){
+                                        Storage.conversationChosen=Storage.listConversation[i]
+                                        break
+                                    }
+                                }
+                            }
                             val intent = Intent(context, ChatActivity::class.java)
-                            intent.putExtra("name",name[item%4])
                             context.startActivity(intent)
                         }
                 ) {
@@ -196,35 +197,20 @@ fun ContactComponent() {
                             }
 
                             //Text
-                            Column(
+                            Box(
                                 modifier = Modifier
                                     .weight(0.6f)
-                                    .padding(vertical = 20.dp)
+                                    .fillMaxHeight(),
                             ) {
-                                Row(
-                                    modifier = Modifier.weight(0.5f),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = name[item],
-                                        color = colorResource(id = R.color.purple_700),
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                                Row(
-                                    modifier = Modifier.weight(0.5f),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "123456789",
-                                        color = Color.Gray,
-                                        fontSize = 16.sp,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(0.5f)
-                                    )
-                                }
+                                Text(
+                                    text = Storage.listContact[index].userName,
+                                    color = colorResource(id = R.color.purple_700),
+                                    fontSize = 16.sp,
+                                    overflow = TextOverflow.Ellipsis,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = CustomFont.font,
+                                    modifier = Modifier.align(Alignment.CenterStart)
+                                )
                             }
 
                         }

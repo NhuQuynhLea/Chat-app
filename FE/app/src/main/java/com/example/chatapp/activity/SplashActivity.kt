@@ -28,6 +28,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.chatapp.R
 import com.example.chatapp.define.Define
 import com.example.chatapp.network.API
+import com.example.chatapp.network.SSEService
 import com.example.chatapp.storage.Storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +49,6 @@ fun SplashScreen(){
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences(context.packageName, MODE_PRIVATE)
     Image(painter = painterResource(id = R.drawable.splash_background), contentDescription = "", modifier = Modifier.fillMaxSize())
-
     LaunchedEffect(Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             if (sharedPreferences.getBoolean(Define.LOGIN_STATE,false)){

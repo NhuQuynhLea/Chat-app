@@ -77,7 +77,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.chatapp.R
 import com.example.chatapp.model.Message
+import com.example.chatapp.network.API
 import com.example.chatapp.storage.Storage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 var name = ""
@@ -130,6 +134,7 @@ fun ChatScene() {
                     screenWidth = screenWidth,
                     screenHeight = screenHeight
                 )
+                Spacer(modifier = Modifier.height(10.dp))
             }
         }
 
@@ -237,7 +242,12 @@ fun ChatScene() {
                                 .size(viewConfiguration.minimumTouchTargetSize.height)
                                 .padding(5.dp)
                                 .clickable {
-                                    context.startActivity(Intent(context,PropertyActivity::class.java))
+                                    context.startActivity(
+                                        Intent(
+                                            context,
+                                            PropertyActivity::class.java
+                                        )
+                                    )
                                 }
                         )
                     }
@@ -318,7 +328,14 @@ fun ChatScene() {
                                     .isNotEmpty()
                             ) {
                                 val message = Message()
-                                message.generateTextMessage(content = chatText.trim(),localDateTime = currentDateTime)
+                                message.conversationId = Storage.conversationChosen.id
+                                message.textContent = chatText.trim()
+
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    API.sendMessage(context = context,message = message, token = Storage.token)
+                                    Storage.conversationChosen = API.getOneConversation(context = context, id = Storage.conversationChosen.id, token = Storage.token)
+                                    Storage.conversationChosen.messageList.sortBy { it.sendDate }
+                                }
                                 chatText = ""
                             }
                         }
@@ -428,9 +445,11 @@ fun TextChatItem(content: String, isSender: Boolean, screenHeight: Dp, screenWid
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White)
-                        .size(width = screenWidth*0.5f, height = minimumHeight*4)
+                        .size(width = screenWidth * 0.5f, height = minimumHeight * 4)
                 ) {
-                    Row(modifier = Modifier.fillMaxWidth().weight(0.25f),
+                    Row(modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.25f),
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -441,7 +460,9 @@ fun TextChatItem(content: String, isSender: Boolean, screenHeight: Dp, screenWid
                             tint = Color.Black
                         )
                     }
-                    Row(modifier = Modifier.fillMaxWidth().weight(0.25f),
+                    Row(modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.25f),
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -452,7 +473,9 @@ fun TextChatItem(content: String, isSender: Boolean, screenHeight: Dp, screenWid
                             tint = Color.Black
                         )
                     }
-                    Row(modifier = Modifier.fillMaxWidth().weight(0.25f),
+                    Row(modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.25f),
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -463,7 +486,9 @@ fun TextChatItem(content: String, isSender: Boolean, screenHeight: Dp, screenWid
                             tint = Color.Black
                         )
                     }
-                    Row(modifier = Modifier.fillMaxWidth().weight(0.25f),
+                    Row(modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.25f),
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
