@@ -6,6 +6,7 @@ import com.example.chatapp.R
 import com.example.chatapp.model.Conversation
 import com.example.chatapp.model.Message
 import com.example.chatapp.model.User
+import com.example.chatapp.storage.Storage
 import okhttp3.FormBody
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -13,10 +14,11 @@ import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import kotlin.contracts.contract
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneId
 
 object API {
     private val client = OkHttpClient()
@@ -95,7 +97,6 @@ object API {
     }
 
 
-
     fun getAllConversation(context: Context,token:String):ArrayList<Conversation> {
         val arrayList = arrayListOf<Conversation>()
         val builder = Request.Builder()
@@ -162,7 +163,6 @@ object API {
     }
 
     fun readMessageFromJson(jsonObject: JSONObject):Message{
-        Log.e("check",jsonObject.toString())
         val message = Message()
         message.textContent = jsonObject.getString("textContent")
         message.sendDate = jsonObject.getString("sendDate")
@@ -199,7 +199,8 @@ object API {
             val response = client.newCall(request).execute()
             val json = JSONArray(response.body!!.string())
             for (i in 0..json.length()-1){
-                userList.add(readUserFromJson(json.getJSONObject(i)))
+                val user = readUserFromJson(json.getJSONObject(i))
+                if (!user.userName.equals(Storage.userName)) userList.add(user)
             }
         } catch (e:Exception){
             Log.e("error",e.message.toString())
@@ -207,23 +208,28 @@ object API {
         return userList
     }
 
-    fun createConversation(context: Context,name:String, userIdList:ArrayList<String>,token: String){
+    fun createConversation(context: Context,name:String, userIdList:ArrayList<String>,token: String):Conversation{
         val builder = Request.Builder()
+        var conversation = Conversation()
         builder.url("${context.getString(R.string.url)}api/conversations")
         builder.addHeader("Authorization", "Bearer $token")
         val json = JSONObject()
         json.put("name",name)
-        json.put("member",userIdList)
+        var jsonArray =JSONArray()
+        userIdList.forEach { jsonArray.put(it) }
+        json.put("members",jsonArray)
+        Log.e("json",json.toString())
         val requestBody = RequestBody.create("application/json; charset=utf-8".toMediaTypeOrNull(), json.toString())
         builder.post(requestBody)
         val request = builder.build()
         try {
             val response = client.newCall(request).execute()
-            Log.e("check",response.isSuccessful.toString())
-            Log.e("check",response.code.toString())
+            val json = JSONObject(response.body!!.string())
+            conversation = readConversationFromJson(jsonObject = json)
         }catch (e:Exception){
             Log.e("createConverError",e.message.toString())
         }
+        return conversation
     }
 
     fun sendMessage(context: Context, message: Message,token: String){
@@ -248,4 +254,32 @@ object API {
         }
     }
 
+    fun getLastSeenDate(context: Context, id: String, token: String):LocalDateTime{
+        val builder = Request.Builder()
+        builder.url("${context.getString(R.string.url)}api/users/get-last-seen?publicId=${id}")
+        builder.addHeader("Authorization", "Bearer $token")
+        val request = builder.build()
+        try {
+            val response = client.newCall(request).execute()
+            val offsetDateTime = OffsetDateTime.parse(response.body!!.string())
+            return offsetDateTime.atZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime()
+        } catch (e:Exception){
+            Log.e("lastSeenError",e.message.toString())
+            return LocalDateTime.now()
+        }
+    }
+
+    fun markAsRead(context: Context, id: String, token: String){
+        val builder = Request.Builder()
+        builder.addHeader("Authorization", "Bearer $token")
+        builder.url("${context.getString(R.string.url)}api/conversations/marked-as-read?conversationId=${id}")
+        val requestBody = RequestBody.create("application/json".toMediaTypeOrNull(), "")
+        val request = builder.post(requestBody).build()
+        try {
+            val response = client.newCall(request).execute()
+            Log.e("markAsReadResponse",response.code.toString()+" "+response.request.toString())
+        } catch (e:Exception){
+            Log.e("markAsReadError",e.message.toString())
+        }
+    }
 }
