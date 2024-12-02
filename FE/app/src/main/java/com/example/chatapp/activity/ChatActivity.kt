@@ -6,6 +6,7 @@ import android.app.Activity
 import android.content.Intent
 import android.icu.text.ListFormatter.Width
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -30,6 +31,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Button
+import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -44,11 +47,15 @@ import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.ComposeCompilerApi
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -74,6 +81,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import androidx.compose.ui.window.Dialog
 import com.example.chatapp.R
 import com.example.chatapp.model.Message
@@ -83,22 +95,93 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import com.example.chatapp.activity.call.CallScreen
+import com.example.chatapp.activity.call.CallViewModel
+import com.example.chatapp.activity.call.State
+import com.example.chatapp.activity.connect.ConnectAction
+
+import com.example.chatapp.activity.connect.ConnectState
+import com.example.chatapp.activity.connect.ConnectViewModel
+import io.getstream.video.android.compose.theme.VideoTheme
+import kotlinx.serialization.Serializable
+import org.koin.androidx.compose.koinViewModel
+import kotlin.math.ceil
 
 var name = ""
+var friendId = ""
 
 class ChatActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        name = intent.getStringExtra("name").toString()
+        name = intent.getStringExtra("name") ?: "Guest"
+        friendId = intent.getStringExtra("friend_id")?: ""
         setContent {
-            ChatScene()
+            Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                val navController = rememberNavController()
+                NavHost(
+                    navController = navController,
+                    startDestination = ConnectRoute,
+                    modifier = Modifier.padding(innerPadding)
+                ) {
+                    composable<ConnectRoute> {
+                        val viewModel = koinViewModel<ConnectViewModel>()
+                        val state = viewModel.state
+
+
+                        LaunchedEffect(key1 = state.isConnected) {
+                            if(state.isConnected) {
+                                navController.navigate(VideoCallRoute) {
+                                    popUpTo(ConnectRoute) {
+                                        inclusive = true
+                                    }
+                                }
+                            }
+                        }
+                        viewModel.onAction(ConnectAction.OnNameChange(name))
+                        ChatScene(state = state, onAction = viewModel::onAction)
+                    }
+                    composable<VideoCallRoute> {
+                        val viewModel = koinViewModel<CallViewModel>()
+                        val state = viewModel.state
+                        viewModel.initCall(friendId);
+
+                        LaunchedEffect(key1 = state.callState) {
+                            if(state.callState == State.ENDED) {
+                                navController.navigate(ConnectRoute) {
+                                    popUpTo(VideoCallRoute) {
+                                        inclusive = true
+                                    }
+                                }
+                            }
+                        }
+
+                        VideoTheme {
+                            CallScreen(state = state, onAction = { action ->
+                                viewModel.onAction(action, friendId)
+                            })
+                        }
+                    }
+                }
+            }
         }
     }
 }
+@kotlinx.serialization.Serializable
+data object ConnectRoute
 
-@Preview
+@Serializable
+data object VideoCallRoute
+
 @Composable
-fun ChatScene() {
+fun ChatScene(state: ConnectState,
+              onAction: (ConnectAction) -> Unit) {
+    val chatList = remember {
+        mutableStateListOf<String>()
+    }
+    val chatStateList = remember {
+        mutableListOf(true)
+    }
     val viewConfiguration = LocalViewConfiguration.current
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
@@ -224,6 +307,10 @@ fun ChatScene() {
                             modifier = Modifier
                                 .size(viewConfiguration.minimumTouchTargetSize.height)
                                 .padding(5.dp)
+                                .clickable {
+
+                                    onAction(ConnectAction.OnConnectClick)
+                                }
                         )
                         Image(
                             painter = painterResource(id = R.drawable.call_icon),
@@ -233,6 +320,10 @@ fun ChatScene() {
                             modifier = Modifier
                                 .size(viewConfiguration.minimumTouchTargetSize.height)
                                 .padding(10.dp)
+                                .clickable {
+
+                                    onAction(ConnectAction.OnConnectClick)
+                                }
                         )
                         Icon(
                             imageVector = Icons.Default.MoreVert,
@@ -355,6 +446,16 @@ fun ChatScene() {
         }
 
     }
+}
+@Preview(showBackground = true)
+@Composable
+private fun ChatScene() {
+    ChatScene(
+        state = ConnectState(
+            errorMessage = "Hello world"
+        ),
+        onAction = {}
+    )
 }
 
 

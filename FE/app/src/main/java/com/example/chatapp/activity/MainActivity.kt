@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.View
+
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -36,6 +37,10 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +68,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.chatapp.R
 import com.example.chatapp.component.mainComponents.ContactComponent
 import com.example.chatapp.component.mainComponents.MessagesComponent
@@ -80,9 +88,20 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.chatapp.activity.call.CallScreen
+import com.example.chatapp.activity.call.CallViewModel
+import com.example.chatapp.activity.call.State
+
+
+import com.example.chatapp.activity.connect.ConnectViewModel
+import io.getstream.video.android.compose.theme.VideoTheme
+import kotlinx.serialization.Serializable
+import org.koin.androidx.compose.koinViewModel
+import java.time.LocalTime
+import java.util.LinkedList
+import java.util.Queue
 
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         stopService(Intent(this, SSEService::class.java))
@@ -91,7 +110,6 @@ class MainActivity : ComponentActivity() {
             MainScene()
         }
     }
-
 
     private var doubleBackToExitPressedOnce = false
     override fun onBackPressed() {
@@ -130,7 +148,6 @@ fun MainScene() {
         mutableStateOf(true)
     }
     val focusManager = LocalFocusManager.current
-
     LaunchedEffect(Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             Storage.listConversation = API.getAllConversation(context = context, Storage.token)
@@ -147,7 +164,7 @@ fun MainScene() {
                 }
             }
     ) {
-
+        Log.e("storage: ",Storage.id )
         //Heading
         Row(
             modifier = Modifier
@@ -201,11 +218,7 @@ fun MainScene() {
                                     contentDescription = "",
                                     tint = Color.Black
                                 )
-                                Text(
-                                    text = "Thêm bạn",
-                                    textAlign = TextAlign.Center,
-                                    fontFamily = CustomFont.font
-                                )
+                                Text(text = "Thêm bạn", textAlign = TextAlign.Center)
                             }
                         }, onClick = {
                             val intent = Intent(context,MultiTaskActivity::class.java)

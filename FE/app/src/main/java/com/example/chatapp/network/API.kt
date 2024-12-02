@@ -68,11 +68,13 @@ object API {
         val request = builder.post(formBody).build()
         try {
             val response = client.newCall(request).execute()
+
             if (response.isSuccessful){
                 val json = JSONObject(response.body!!.string())
                 return json.getString("access_token")
             } else return ""
         }catch (e:Exception){
+            Log.e("getAuthenticatedToken: ",e.message.toString() )
             return ""
         }
     }
@@ -151,7 +153,9 @@ object API {
         conversation.id = jsonObject.getString("publicId")
         val memberList = jsonObject.getJSONArray("members")
         for (i in 0..memberList.length()-1){
-            conversation.memberList.add(readUserFromJson(memberList.getJSONObject(i)))
+            val user = readUserFromJson(memberList.getJSONObject(i));
+            Log.i("READAPI", "readConversationFromJson: " + user.userName + user.email);
+            conversation.memberList.add(user)
         }
         val messageList = jsonObject.getJSONArray("messages")
         for (i in 0..messageList.length()-1){

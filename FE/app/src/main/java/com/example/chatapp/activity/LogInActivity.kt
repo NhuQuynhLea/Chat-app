@@ -71,6 +71,7 @@ import com.example.chatapp.storage.Storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 class LogInActivity : ComponentActivity() {

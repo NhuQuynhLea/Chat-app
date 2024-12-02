@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "59758713598",
+    "project_id": "calling-5c54e",
+    "storage_bucket": "calling-5c54e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:59758713598:android:47bf0b93736b4092be63af",
+        "android_client_info": {
+          "package_name": "com.example.chatapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-h01pYMcpIC5kIxACsJaSktkPaiSf5U0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
