@@ -2,13 +2,16 @@
 
 package com.example.chatapp.activity
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.View
-
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -65,6 +68,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.NotificationCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -88,6 +92,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.random.Random
 import com.example.chatapp.activity.call.CallScreen
 import com.example.chatapp.activity.call.CallViewModel
 import com.example.chatapp.activity.call.State
@@ -102,6 +107,7 @@ import java.util.LinkedList
 import java.util.Queue
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         stopService(Intent(this, SSEService::class.java))
@@ -164,7 +170,7 @@ fun MainScene() {
                 }
             }
     ) {
-        Log.e("storage: ",Storage.id )
+
         //Heading
         Row(
             modifier = Modifier
@@ -218,7 +224,11 @@ fun MainScene() {
                                     contentDescription = "",
                                     tint = Color.Black
                                 )
-                                Text(text = "Thêm bạn", textAlign = TextAlign.Center)
+                                Text(
+                                    text = "Thêm bạn",
+                                    textAlign = TextAlign.Center,
+                                    fontFamily = CustomFont.font
+                                )
                             }
                         }, onClick = {
                             val intent = Intent(context,MultiTaskActivity::class.java)

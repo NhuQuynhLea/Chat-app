@@ -13,4 +13,5 @@ object Storage {
     var listConversation = arrayListOf<Conversation>()
     var listContact = arrayListOf<User>()
     var conversationChosen = Conversation()
+    var messageReceive = ""
 }

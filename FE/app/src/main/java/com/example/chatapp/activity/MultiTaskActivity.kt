@@ -3,6 +3,8 @@ package com.example.chatapp.activity
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -22,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -44,6 +47,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -68,9 +72,11 @@ import com.example.chatapp.model.User
 import com.example.chatapp.network.API
 import com.example.chatapp.storage.CustomFont
 import com.example.chatapp.storage.Storage
+import com.google.android.gms.common.api.Api
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlin.math.log
 
 class MultiTaskActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,23 +101,15 @@ fun MultiTaskScene(intent: Intent) {
         mutableStateOf("")
     }
     var searchUser = remember {
-        mutableStateOf(arrayListOf<User>())
+        mutableStateListOf<User>()
     }
-    var chosenUser by remember {
-        mutableStateOf(arrayListOf<User>())
+    var chosenUser = remember {
+        mutableStateListOf<User>()
     }
     var isLoading by remember {
-        mutableStateOf(true)
+        mutableStateOf(false)
     }
     val focusManager = LocalFocusManager.current
-    LaunchedEffect(Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            searchUser.value = API.searchUser(
-                context = context, query = "", token = Storage.token
-            )
-            isLoading = false
-        }
-    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -213,113 +211,185 @@ fun MultiTaskScene(intent: Intent) {
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = {
                         focusManager.clearFocus()
+                        if (searchText.trim().isNotEmpty()) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                isLoading = true
+                                searchUser.clear()
+                                API.searchUser(context = context, query = searchText.trim(), token = Storage.token).forEach {
+                                    var isContain = false
+                                    if (chosenUser.isNotEmpty()){
+                                        for (i in 0..<chosenUser.size){
+                                            if (it.id.equals(chosenUser[i].id)){
+                                                isContain = true
+                                                break
+                                            }
+                                        }
+                                    }
+                                    if (!isContain) searchUser.add(it)
+                                }
+                                isLoading= false
+                            }
+                        }
                     }),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-            if (!isLoading)
-                LazyColumn() {
-                    items(searchUser.value.size) { index ->
-                        var checkBoxItem by remember {
-                            mutableStateOf(false)
-                        }
-                        if (checkBoxItem) chosenUser.add(searchUser.value[index])
-                        if (searchUser.value[index].userName.lowercase()
-                                .contains(searchText.trim())
-                        )
-                            Row(modifier = Modifier
-                                .fillMaxWidth()
-                                .height(80.dp)
-                                .clickable {
-                                    if (intent
-                                            .getStringExtra("type")
-                                            .equals("friend")
+            LazyColumn() {
+                items(chosenUser){ item->
+                    var checkBoxItem by remember {
+                        mutableStateOf(true)
+                    }
+                    if (!checkBoxItem) {
+                        chosenUser.remove(item)
+                    }
+                    Row(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(start = 10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                            ) {
+                                //Avatar
+                                Column(modifier = Modifier.weight(0.2f)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(90.dp)
+                                            .padding(10.dp)
                                     ) {
-                                        var isExist = false
-                                        for (conversation in Storage.listConversation) {
-                                            if (conversation.name == searchUser.value[index].userName) {
-                                                isExist = true
-                                                Storage.conversationChosen = conversation
-                                                break
-                                            }
-                                        }
-                                        if (!isExist) {
-                                            API.createConversation(
-                                                context = context,
-                                                name = searchUser.value[index].userName,
-                                                userIdList = arrayListOf(searchUser.value[index].id),token = Storage.token )
-                                        }
-                                        val intent = Intent(context, ChatActivity::class.java)
-                                        context.startActivity(intent)
+                                        Image(
+                                            painter = painterResource(id = R.drawable.avatar),
+                                            contentDescription = "",
+                                            contentScale = ContentScale.FillBounds,
+                                            modifier = Modifier
+                                                .align(Alignment.Center)
+                                                .clip(
+                                                    RoundedCornerShape(100.dp)
+                                                )
+                                        )
                                     }
                                 }
-                            ) {
-                                Column(
+                                //Text
+                                Box(
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(start = 10.dp)
+                                        .weight(0.6f)
+                                        .fillMaxHeight(),
                                 ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                    ) {
-                                        //Avatar
-                                        Column(modifier = Modifier.weight(0.2f)) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(90.dp)
-                                                    .padding(10.dp)
-                                            ) {
-                                                Image(
-                                                    painter = painterResource(id = R.drawable.avatar),
-                                                    contentDescription = "",
-                                                    contentScale = ContentScale.FillBounds,
-                                                    modifier = Modifier
-                                                        .align(Alignment.Center)
-                                                        .clip(
-                                                            RoundedCornerShape(100.dp)
-                                                        )
-                                                )
-                                            }
-                                        }
-                                        //Text
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(0.6f)
-                                                .fillMaxHeight(),
-                                        ) {
-                                            Text(
-                                                text = searchUser.value[index].userName,
-                                                color = colorResource(id = R.color.purple_700),
-                                                fontSize = 16.sp,
-                                                overflow = TextOverflow.Ellipsis,
-                                                fontWeight = FontWeight.Bold,
-                                                fontFamily = CustomFont.font,
-                                                modifier = Modifier.align(Alignment.CenterStart)
-                                            )
-                                        }
-                                        //Checkbox
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(0.2f)
-                                                .fillMaxHeight()
-                                        ) {
-                                            Checkbox(
-                                                checked = checkBoxItem, onCheckedChange = {
-                                                    checkBoxItem = !checkBoxItem
-                                                }, colors = CheckboxDefaults.colors(
-                                                    checkmarkColor = Color.White,
-                                                    checkedColor = Color.Green
-                                                ),
-                                                modifier = Modifier.align(Alignment.Center)
-                                            )
-                                        }
-                                    }
-                                    HorizontalDivider(modifier = Modifier.padding(horizontal = 10.dp))
+                                    Text(
+                                        text = item.userName,
+                                        color = colorResource(id = R.color.purple_700),
+                                        fontSize = 16.sp,
+                                        overflow = TextOverflow.Ellipsis,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = CustomFont.font,
+                                        modifier = Modifier.align(Alignment.CenterStart)
+                                    )
+                                }
+                                //Checkbox
+                                Box(
+                                    modifier = Modifier
+                                        .weight(0.2f)
+                                        .fillMaxHeight()
+                                ) {
+                                    Checkbox(
+                                        checked = checkBoxItem, onCheckedChange = {
+                                            checkBoxItem = !checkBoxItem
+                                        }, colors = CheckboxDefaults.colors(
+                                            checkmarkColor = Color.White,
+                                            checkedColor = Color.Green
+                                        ),
+                                        modifier = Modifier.align(Alignment.Center)
+                                    )
                                 }
                             }
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 10.dp))
+                        }
                     }
                 }
+                items(searchUser){ item->
+                    var checkBoxItem by remember {
+                        mutableStateOf(false)
+                    }
+                    if (checkBoxItem) {
+                        chosenUser.add(item)
+                        searchUser.remove(item)
+                    }
+                    Row(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(start = 10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                            ) {
+                                //Avatar
+                                Column(modifier = Modifier.weight(0.2f)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(90.dp)
+                                            .padding(10.dp)
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.avatar),
+                                            contentDescription = "",
+                                            contentScale = ContentScale.FillBounds,
+                                            modifier = Modifier
+                                                .align(Alignment.Center)
+                                                .clip(
+                                                    RoundedCornerShape(100.dp)
+                                                )
+                                        )
+                                    }
+                                }
+                                //Text
+                                Box(
+                                    modifier = Modifier
+                                        .weight(0.6f)
+                                        .fillMaxHeight(),
+                                ) {
+                                    Text(
+                                        text = item.userName,
+                                        color = colorResource(id = R.color.purple_700),
+                                        fontSize = 16.sp,
+                                        overflow = TextOverflow.Ellipsis,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = CustomFont.font,
+                                        modifier = Modifier.align(Alignment.CenterStart)
+                                    )
+                                }
+                                //Checkbox
+                                Box(
+                                    modifier = Modifier
+                                        .weight(0.2f)
+                                        .fillMaxHeight()
+                                ) {
+                                    Checkbox(
+                                        checked = checkBoxItem, onCheckedChange = {
+                                            checkBoxItem = !checkBoxItem
+                                        }, colors = CheckboxDefaults.colors(
+                                            checkmarkColor = Color.White,
+                                            checkedColor = Color.Green
+                                        ),
+                                        modifier = Modifier.align(Alignment.Center)
+                                    )
+                                }
+                            }
+                            HorizontalDivider(modifier = Modifier.padding(horizontal = 10.dp))
+                        }
+                    }
+                }
+
+            }
         }
 
 
@@ -348,6 +418,7 @@ fun MultiTaskScene(intent: Intent) {
             OutlinedButton(
                 onClick = {
                     CoroutineScope(Dispatchers.IO).launch {
+                        isLoading = true
                         if (intent.getStringExtra("type").equals("friend")) {
                             for (index in 0..chosenUser.size - 1) {
                                 var isExist = false
@@ -358,40 +429,53 @@ fun MultiTaskScene(intent: Intent) {
                                     }
                                 }
                                 if (!isExist) {
-                                    API.createConversation(
+                                    var conversation = API.createConversation(
                                         context = context,
-                                        name = chosenUser[index].userName,
+                                        name = chosenUser[index].userName+"/"+Storage.userName,
                                         userIdList = arrayListOf(chosenUser[index].id),
                                         token = Storage.token
                                     )
                                     Storage.listConversation = API.getAllConversation(
                                         context = context, token = Storage.token
                                     )
+                                    Storage.conversationChosen = conversation;
                                 }
                             }
+                            context.startActivity(Intent(context,MainActivity::class.java))
+                            (context as Activity).finish()
                         } else {
-                            var isExist = false
-                            for (i in 0..Storage.listConversation.size - 1) {
-                                if (Storage.listConversation[i].name.equals(groupName)) {
-                                    isExist = true
-                                    break
+                            if (groupName.isNotEmpty()){
+                                var isExist = false
+                                for (i in 0..Storage.listConversation.size - 1) {
+                                    if (Storage.listConversation[i].name.equals(groupName)) {
+                                        isExist = true
+                                        break
+                                    }
                                 }
-                            }
-                            if (!isExist) {
-                                var chosenUserId = arrayListOf<String>()
-                                chosenUser.forEach { chosenUserId.add(it.id) }
-                                API.createConversation(
-                                    context = context,
-                                    name = groupName,
-                                    userIdList = chosenUserId,
-                                    token = Storage.token
-                                )
-                                Storage.listConversation =
-                                    API.getAllConversation(context = context, token = Storage.token)
+                                if (!isExist) {
+                                    var chosenUserId = arrayListOf<String>()
+                                    chosenUser.forEach { chosenUserId.add(it.id) }
+
+                                    var conversation = API.createConversation(
+                                        context = context,
+                                        name = groupName,
+                                        userIdList = chosenUserId,
+                                        token = Storage.token
+                                    )
+                                    Storage.listConversation =
+                                        API.getAllConversation(context = context, token = Storage.token)
+                                }
+                                context.startActivity(Intent(context,MainActivity::class.java))
+                                (context as Activity).finish()
+                            } else {
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    Toast.makeText(context,"Please enter group name!",Toast.LENGTH_LONG).show()
+                                }
                             }
 
+
                         }
-                        (context as Activity).finish()
+                        isLoading=false
                     }
 
                 },

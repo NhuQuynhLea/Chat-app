@@ -3,12 +3,18 @@
 package com.example.chatapp.activity
 
 import android.app.Activity
+import android.content.BroadcastReceiver
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
-import android.icu.text.ListFormatter.Width
+import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -39,6 +45,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.CopyAll
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Forward
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertEmoticon
 import androidx.compose.material.icons.filled.MoreVert
@@ -53,6 +60,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.ComposeCompilerApi
 import androidx.compose.runtime.LaunchedEffect
@@ -87,13 +96,24 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.ui.window.Dialog
+import androidx.core.app.NotificationCompat
+import androidx.lifecycle.ViewModel
 import com.example.chatapp.R
 import com.example.chatapp.model.Message
 import com.example.chatapp.network.API
 import com.example.chatapp.storage.Storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import java.time.Duration
 import java.time.LocalDateTime
 import com.example.chatapp.activity.call.CallScreen
 import com.example.chatapp.activity.call.CallViewModel
@@ -111,7 +131,7 @@ var name = ""
 var friendId = ""
 
 class ChatActivity : ComponentActivity() {
-
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         name = intent.getStringExtra("name") ?: "Guest"
@@ -190,7 +210,51 @@ fun ChatScene(state: ConnectState,
     }
     val lazyColumnState = rememberLazyListState()
     val context = LocalContext.current
-    val currentDateTime = LocalDateTime.now()
+    var messageList = remember {
+        mutableStateListOf<Message>()
+    }
+    var onlineText by remember {
+        mutableStateOf("Online")
+    }
+    val today = LocalDateTime.now()
+
+
+
+    Storage.conversationChosen.messageList.forEach { messageList.add(it) }
+    LaunchedEffect(key1 = Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            API.markAsRead(context = context, id = Storage.conversationChosen.id, token = Storage.token)
+        }
+        while (true){
+            if (Storage.messageReceive.isNotEmpty()){
+                if (Storage.messageReceive.contains("textContent")){
+                    val message = API.readMessageFromJson(JSONObject(Storage.messageReceive))
+                    if (message.conversationId.equals(Storage.conversationChosen.id)&&!message.senderId.equals(Storage.id)){
+                        messageList.add(message)
+                    }
+                }
+                Storage.messageReceive=""
+            }
+            delay(500)
+        }
+    }
+    if (Storage.conversationChosen.memberList.size==2)
+    LaunchedEffect(Unit) {
+        while (true){
+            CoroutineScope(Dispatchers.IO).launch {
+                val lastOnlineDate = API.getLastSeenDate(context = context, id = Storage.conversationChosen.id, token = Storage.token)
+                val duration = Duration.between(lastOnlineDate,today)
+                if (duration.toMinutes()>=1){
+                    if (duration.toMinutes()<60)
+                    onlineText = "Hoạt động ${duration.toMinutes()} phút trước"
+                    else if (duration.toHours()<24) onlineText = "Hoạt động ${duration.toHours()} giờ trước"
+                    else onlineText = "Hoạt động ${duration.toDays()} ngày trước"
+                }
+            }
+            delay(1000)
+        }
+
+    }
 
     Box(
         modifier = Modifier
@@ -207,10 +271,10 @@ fun ChatScene(state: ConnectState,
                 .fillMaxSize()
                 .padding(
                     bottom = viewConfiguration.minimumTouchTargetSize.height + 20.dp,
-                    top = viewConfiguration.minimumTouchTargetSize.height * 1.5f
+                    top = viewConfiguration.minimumTouchTargetSize.height * 1.4f
                 )
         ) {
-            items(Storage.conversationChosen.messageList.reversed()) {
+            items(messageList.reversed()) {
                 TextChatItem(
                     content = it.textContent,
                     isSender = it.senderId.equals(Storage.id),
@@ -246,6 +310,7 @@ fun ChatScene(state: ConnectState,
                             contentDescription = "",
                             tint = Color.White,
                             modifier = Modifier.clickable {
+                                context.startActivity(Intent(context,MainActivity::class.java))
                                 (context as Activity).finish()
                             })
 
@@ -290,7 +355,7 @@ fun ChatScene(state: ConnectState,
                         modifier = Modifier.weight(0.5f), verticalAlignment = Alignment.Top
                     ) {
                         Text(
-                            text = "Online",
+                            text = onlineText,
                             color = Color.White,
                             fontSize = 16.sp,
                             textAlign = TextAlign.Center
@@ -421,11 +486,14 @@ fun ChatScene(state: ConnectState,
                                 val message = Message()
                                 message.conversationId = Storage.conversationChosen.id
                                 message.textContent = chatText.trim()
-
+                                message.senderId = Storage.id
+                                messageList.add(message);
                                 CoroutineScope(Dispatchers.IO).launch {
-                                    API.sendMessage(context = context,message = message, token = Storage.token)
-                                    Storage.conversationChosen = API.getOneConversation(context = context, id = Storage.conversationChosen.id, token = Storage.token)
-                                    Storage.conversationChosen.messageList.sortBy { it.sendDate }
+                                    API.sendMessage(
+                                        context = context,
+                                        message = message,
+                                        token = Storage.token
+                                    )
                                 }
                                 chatText = ""
                             }
@@ -468,6 +536,8 @@ fun TextChatItem(content: String, isSender: Boolean, screenHeight: Dp, screenWid
     var showReact by remember {
         mutableStateOf(false)
     }
+    val context = LocalContext.current
+    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -569,14 +639,18 @@ fun TextChatItem(content: String, isSender: Boolean, screenHeight: Dp, screenWid
                     ) {
                         Text(text = "Chuyển tiếp", color = Color.Black, textAlign = TextAlign.Left)
                         Icon(
-                            imageVector = Icons.Default.Reply,
+                            imageVector = Icons.Default.Forward,
                             contentDescription = "",
                             tint = Color.Black
                         )
                     }
                     Row(modifier = Modifier
                         .fillMaxWidth()
-                        .weight(0.25f),
+                        .weight(0.25f)
+                        .clickable {
+                            val clipData = ClipData.newPlainText("text", content)
+                            clipboardManager.setPrimaryClip(clipData)
+                        },
                         horizontalArrangement = Arrangement.SpaceAround,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
